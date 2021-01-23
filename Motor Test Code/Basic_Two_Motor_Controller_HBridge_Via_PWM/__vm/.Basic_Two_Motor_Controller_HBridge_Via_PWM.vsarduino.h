@@ -25,7 +25,7 @@
 #define ARDUINO_ESP32_DEV
 #define ARDUINO_ARCH_ESP32
 #define ESP32
-#define CORE_DEBUG_LEVEL 0
+#define CORE_DEBUG_LEVEL 4
 #define __cplusplus 201103L
 
 #define _Pragma(x)

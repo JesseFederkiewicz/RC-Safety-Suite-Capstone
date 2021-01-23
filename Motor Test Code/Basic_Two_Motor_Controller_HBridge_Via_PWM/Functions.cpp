@@ -9,7 +9,7 @@ const int motorTwoPin = 23;  // 23 is GPIO23
 
 //PWM properties
 const int motorOneFreq = 10000;
-const int motorTwoFreq = 5000;
+const int motorTwoFreq = 10000;
 const int motorOneChannel = 0;
 const int motorTwoChannel = 1;
 const int resolution = 8;
@@ -28,20 +28,20 @@ void setupFuncTestCpp()
 void motorLogicCpp()
 {
 	// ramp rpm up
-	for (int dutyCycle = 0; dutyCycle <= 255; dutyCycle += 50) {
+	for (int dutyCycle = 0; dutyCycle <= 255; dutyCycle++) {
 		// changing motor rpm with pwm
 		ledcWrite(motorOneChannel, dutyCycle);
-		ledcWrite(motorTwoChannel, 200);
-		delay(500);
+		ledcWrite(motorTwoChannel, 255 - dutyCycle);
+		delay(10);
 	}
-
+	delay(500);
 	// rpm down
-	for (int dutyCycle = 255; dutyCycle >= 0; dutyCycle -= 30) {
+	for (int dutyCycle = 255; dutyCycle >= 0; dutyCycle--) {
 		// changing motor rpm with pwm
 		ledcWrite(motorOneChannel, dutyCycle);
-		ledcWrite(motorTwoChannel, 255);
-		delay(500);
+		ledcWrite(motorTwoChannel, 255 - dutyCycle);
+		delay(10);
 	}
-
+	delay(500);
 }
 
