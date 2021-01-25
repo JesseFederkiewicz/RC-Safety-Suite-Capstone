@@ -73,6 +73,7 @@ void Main() {
 			delay(80);
 		}
 		delay(1000);
+
 		// rpm down
 		for (int dutyCycle = 100; dutyCycle >= 0; dutyCycle--) {
 			SetDuty(m1, dutyCycle);
