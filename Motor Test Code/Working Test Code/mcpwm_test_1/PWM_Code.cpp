@@ -1,9 +1,10 @@
 /*
- Name:		  PWM_Code.cpp
- Created:	  1/22/2021
- Author:	  Tim Hachey
- Description: Arduino first test library...
-			  quite the learning curve up in here
+ Name:			PWM_Code.cpp
+ Created:		1/22/2021
+ Last Modified:
+ Author:		Tim Hachey & Jesse Federkiewicz
+ Description:	Arduino first test library...
+				quite the learning curve up in here
 */
 #include "PWM_Code.h"
 #include "driver/mcpwm.h"
