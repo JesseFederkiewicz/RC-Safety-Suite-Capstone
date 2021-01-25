@@ -5,12 +5,13 @@
 */
 
 // the setup function runs once when you press reset or power the board
+#include "pwm.h"
 #include "Functions.h"
-
 void setup() {
-
+	setupFuncTestCpp();
 }
 
 // the loop function runs over and over again until power down or reset
 void loop() {
+	motorLogicCpp();
 }
