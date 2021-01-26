@@ -1,0 +1,158 @@
+@import url(//fonts.googleapis.com/css?family=Comfortaa|Raleway|Special+Elite&effect=3d);
+body, input { font-family: "Special Elite", sans-serif; font-size: x-large; }
+h1 { font-family: Comfortaa, sans-serif; font-size: 3.5em; }
+.hdr { color: #fff; background-color: #00f; margin: 0px; padding: 20px; }
+.site { display: grid; grid-template-columns : 2fr 3fr; margin: 20px; grid-gap: 20px; }
+.site div { padding : 10px; background-color : #ddd; }
+.text-center { text-align : center; }
+.text-center-mult-div{grid-column: 1/10; text-align: center;}
+.text-right{text-align: right;}
+
+#loginSite{
+    display: grid;
+    grid-template-columns: 20% 20% 20% 20% 20%;
+    grid-template-rows: auto auto auto;
+    gap: 5px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    background-color: grey;
+}
+
+#usnLbl{
+    grid-row: 1;
+    grid-column: 2;
+}
+
+#usnInput{
+    grid-row: 1;
+    grid-column: 3;
+}
+
+#pswLbl{
+    grid-row: 2;
+    grid-column: 2;
+}
+
+#pswInput{
+    grid-row: 2;
+    grid-column: 3;
+}
+
+#btnDiv{
+    grid-row: 3;
+    grid-column: 2/5;
+}
+#loginBtn{
+    width: 100%;
+}
+
+#logoutBtn{
+    width: 100%;
+}
+
+#usn{
+    grid-column: 4;
+    grid-row: 1;
+}
+
+#psw{
+    grid-column: 4;
+    grid-row: 2;
+}
+
+
+
+#indexSite{
+    display: grid;
+    grid-template-columns: 20% 20% 20% 20% 20%;
+    grid-template-rows: auto auto;
+    gap: 5px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    background-color: grey;
+}
+
+#tagSettings{
+    grid-row: 1;
+    grid-column: 2;
+}
+
+#messages{
+    grid-row: 1;
+    grid-column: 4;
+}
+
+#logoutBtn{
+    grid-row: 3;
+    grid-column: 2/5;
+}
+
+
+#addUsrBtn{
+    grid-row: 3;
+    grid-column: 2/5;
+    width: 100%;
+}
+
+
+#addUserSite{
+    display: grid;
+    grid-template-columns: 20% 20% 20% 20% 20%;
+    grid-template-rows: auto auto auto;
+    gap: 5px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    background-color: grey;
+}
+
+#addUsrLbl{
+    grid-row: 1;
+    grid-column: 2;
+}
+
+#addPswLbl{
+    grid-row: 2;
+    grid-column: 2;
+}
+
+#addUsrInput{
+    grid-row: 1;
+    grid-column: 3;
+}
+
+#addPswInput{
+    grid-row: 2;
+    grid-column: 3;
+}
+
+#addUsrBtnDiv{
+    grid-row: 3;
+    grid-column: 2/5;
+}
+#addUsrBtn{
+    width: 100%;
+}
+
+#infoTable{
+    margin: auto;
+}
+th{
+    padding-right: 15px;
+}
+
+tr:nth-child(even){
+    background-color: green;
+}
+
+tr:nth-child(odd){
+    background-color: transparent;
+}
+
+th:nth-child(odd){
+    background-color: green;
+}
+
+th:nth-child(even){
+    background-color: transparent;
+
+}

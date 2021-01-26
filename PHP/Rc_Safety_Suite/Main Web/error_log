@@ -1,0 +1,16 @@
+[22-Jan-2021 10:12:55 MST] PHP Warning:  error_log() expects parameter 1 to be string, object given in /home/jfederki/public_html/cmpe2500/ICAs/ica03/functions.php on line 26
+[22-Jan-2021 10:12:55 MST] PHP Fatal error:  Uncaught Error: Cannot use object of type mysqli_result as array in /home/jfederki/public_html/cmpe2500/ICAs/ica03/functions.php:27
+Stack trace:
+#0 /home/jfederki/public_html/cmpe2500/ICAs/ica03/login.php(27): Validate(Array)
+#1 {main}
+  thrown in /home/jfederki/public_html/cmpe2500/ICAs/ica03/functions.php on line 27
+[22-Jan-2021 10:28:03 MST] PHP Fatal error:  Uncaught Error: Cannot use object of type mysqli_result as array in /home/jfederki/public_html/cmpe2500/ICAs/ica03/functions.php:27
+Stack trace:
+#0 /home/jfederki/public_html/cmpe2500/ICAs/ica03/login.php(27): Validate(Array)
+#1 {main}
+  thrown in /home/jfederki/public_html/cmpe2500/ICAs/ica03/functions.php on line 27
+[22-Jan-2021 10:31:47 MST] PHP Fatal error:  Uncaught Error: Call to undefined method mysqli_result::fetsh_assoc() in /home/jfederki/public_html/cmpe2500/ICAs/ica03/functions.php:26
+Stack trace:
+#0 /home/jfederki/public_html/cmpe2500/ICAs/ica03/login.php(27): Validate(Array)
+#1 {main}
+  thrown in /home/jfederki/public_html/cmpe2500/ICAs/ica03/functions.php on line 26
