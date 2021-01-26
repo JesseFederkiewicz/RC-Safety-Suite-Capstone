@@ -1,9 +1,13 @@
 /*
- Name:		  CPPCode.cpp
- Created:	  1/22/2021
- Author:	  Tim Hachey
- Description: Arduino first test library...
-			  quite the learning curve up in here
+	Name:		 CPPCode.cpp
+	Created:	 1/22/2021
+	Author:	     Tim Hachey
+	Description: Arduino first test library...
+				 quite the learning curve up in here.
+
+	Jan 25: we have some basic pwm functionality and some basic encoder readings.
+			next up add some interrupt timers so we can count encoder readings per time frame
+
 */
 #include "CPPCode.h"
 #include "driver/mcpwm.h"
@@ -11,22 +15,22 @@
 #include "HardwareSerial.h"
 #include "driver/gpio.h"
 
-// custom structs to hold several emuns that are needed for configs/inits/setting duty 
+// custom structs to hold several emuns that are needed for configs/inits/setting duty:
 
 typedef struct PWM_Settings {
 	int pin;                   // the GPIO pin for the pwm signal going to the H-bridge and motor
 	mcpwm_unit_t unit;         // the pwm unit that will control the motor
 	mcpwm_timer_t timer;       // the timer to use for the pwm operator
-	mcpwm_operator_t opOut;    // the pwm operator to use with this motor
+	mcpwm_operator_t opOut;    // the pwm operator output to use with this motor
 	mcpwm_io_signals_t signal; // the specific pwm io signal
 };
 
 typedef struct Encoder_Settings {
 	int pin;                             // GPIO pin of the encoder input signal
+	int preScale;                        // prescaler for the capture timer
 	mcpwm_capture_signal_t capSignal;    // the capture signal to use
 	mcpwm_io_signals_t signal;           // specific io signal
 	mcpwm_capture_on_edge_t edgeCapture; // which edge detection to use, pos/neg
-	int preScale;                        // prescaler for the capture timer
 };
 
 // bundle up each struct into a nice group for each motor
@@ -38,16 +42,16 @@ typedef struct Motor_Settings {
 // this setup will need to be run for each motor
 void PWMSetup(Motor_Settings m, mcpwm_config_t* unitConf)
 {
-	// init gpio for pwm module
+	// attach pwm signal ouptput to gpio pin
 	mcpwm_gpio_init(m.pwm.unit, m.pwm.signal, m.pwm.pin);
 
-	// init gpio for capture signals
+	// attach capture signal input to gpio pin
 	mcpwm_gpio_init(m.pwm.unit, m.encoder.signal, m.encoder.pin);
 
-	// init the pwm unit
+	// init the pwm unit, not actually needed for each motor, only for each unit... but oh well
 	mcpwm_init(m.pwm.unit, m.pwm.timer, unitConf);
 
-	// enable PWM encoder capturing
+	// enable/init PWM encoder capturing
 	mcpwm_capture_enable(m.pwm.unit, m.encoder.capSignal, m.encoder.edgeCapture, m.encoder.preScale);
 }
 
@@ -86,6 +90,7 @@ void Main() {
 	pwmconf.cmpr_a = 0;						 // initial duty of 0
 	pwmconf.cmpr_b = 0;
 
+	// run setup for each motor
 	PWMSetup(m1, &pwmconf);
 	PWMSetup(m2, &pwmconf);
 
