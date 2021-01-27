@@ -98,14 +98,28 @@ void Main() {
 	uint encRead1 = 0;
 	uint encRead2 = 0;
 
+	// setup gpio pin 1 for direction control
+	gpio_config_t dirConfig;
+	dirConfig.intr_type = GPIO_INTR_DISABLE;
+	dirConfig.mode = GPIO_MODE_OUTPUT;
+	dirConfig.pin_bit_mask = 0b10; // bit #1
+	dirConfig.pull_down_en = GPIO_PULLDOWN_ENABLE;
+	dirConfig.pull_up_en = GPIO_PULLUP_ENABLE;
+
+	gpio_config(&dirConfig);
+
+	// set gpio 1 high for now
+	int direction = 1;
+	gpio_set_level(GPIO_NUM_1, direction);
+
 	// main loop
 	for (;;)
-	{
+	{	
 		// ramp rpm up
-		for (int dutyCycle = 0; dutyCycle <= 100; dutyCycle++) {
+		for (int dutyCycle = 40; dutyCycle <= 100; dutyCycle++) {
 
 			mcpwm_set_duty(m1.pwm.unit, m1.pwm.timer, m1.pwm.opOut, dutyCycle);
-			mcpwm_set_duty(m2.pwm.unit, m2.pwm.timer, m2.pwm.opOut, 100 - dutyCycle);
+			mcpwm_set_duty(m2.pwm.unit, m2.pwm.timer, m2.pwm.opOut, dutyCycle);
 
 			encRead1 = mcpwm_capture_signal_get_value(m1.pwm.unit, m1.encoder.capSignal);
 			encRead1 = mcpwm_capture_signal_get_value(m2.pwm.unit, m2.encoder.capSignal);
@@ -115,10 +129,10 @@ void Main() {
 		delay(1000);
 
 		// rpm down
-		for (int dutyCycle = 100; dutyCycle >= 0; dutyCycle--) {
+		for (int dutyCycle = 100; dutyCycle >= 40; dutyCycle--) {
 
 			mcpwm_set_duty(m1.pwm.unit, m1.pwm.timer, m1.pwm.opOut, dutyCycle);
-			mcpwm_set_duty(m2.pwm.unit, m2.pwm.timer, m2.pwm.opOut, 100 - dutyCycle);
+			mcpwm_set_duty(m2.pwm.unit, m2.pwm.timer, m2.pwm.opOut, dutyCycle);
 
 			encRead1 = mcpwm_capture_signal_get_value(m1.pwm.unit, m1.encoder.capSignal);
 			encRead2 = mcpwm_capture_signal_get_value(m2.pwm.unit, m2.encoder.capSignal);
@@ -126,5 +140,12 @@ void Main() {
 			delay(80);
 		}
 		delay(1000);
+
+		if (direction)
+			direction = 0;
+		else
+			direction++;
+
+		gpio_set_level(GPIO_NUM_1, direction);
 	}
 }
