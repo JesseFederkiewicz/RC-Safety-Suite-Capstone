@@ -7,6 +7,8 @@
 
 	Jan 25: we have some basic pwm functionality and some basic encoder readings.
 			next up add some interrupt timers so we can count encoder readings per time frame
+	
+	Jan 26: added some basic directional control using GPIO 1 to an inverter and then the h-bridge
 
 */
 #include "CPPCode.h"
