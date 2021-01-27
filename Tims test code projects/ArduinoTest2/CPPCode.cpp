@@ -7,6 +7,8 @@
 
 	Jan 25: we have some basic pwm functionality and some basic encoder readings.
 			next up add some interrupt timers so we can count encoder readings per time frame
+	
+	Jan 26: added some basic directional control using GPIO 1 to an inverter and then the h-bridge
 
 */
 #include "CPPCode.h"
@@ -75,8 +77,8 @@ void Main() {
 	m2.pwm.timer = m1.pwm.timer;              // m2 shares timer with m1
 	m2.pwm.opOut = MCPWM_OPR_B;               // m2 on operator 0 output B
 	m2.pwm.signal = MCPWM0B;                  // needed for gpio_init
-	m2.pwm.pin = 23;		                  // pwm for m1 on pin 22
-	m2.encoder.pin = 35;                      // encoder input on pin 34
+	m2.pwm.pin = 23;		                  // pwm for m1 on pin 23
+	m2.encoder.pin = 35;                      // encoder input on pin 35
 	m2.encoder.signal = MCPWM_CAP_1;		  // encoder io signal
 	m2.encoder.capSignal = MCPWM_SELECT_CAP1; // same as above but for mcpwm_capture_enable()
 	m2.encoder.edgeCapture = MCPWM_POS_EDGE;  // capture positive edges
