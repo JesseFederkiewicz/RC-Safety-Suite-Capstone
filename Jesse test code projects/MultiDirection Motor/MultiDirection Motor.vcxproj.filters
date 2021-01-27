@@ -15,18 +15,18 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="mcpwm_test_1.ino" />
+    <None Include="MultiDirection Motor.ino" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="__vm\.mcpwm_test_1.vsarduino.h">
+    <ClInclude Include="__vm\.MultiDirection Motor.vsarduino.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PWM_Code.h">
+    <ClInclude Include="funcs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="PWM_Code.cpp">
+    <ClCompile Include="funcs.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

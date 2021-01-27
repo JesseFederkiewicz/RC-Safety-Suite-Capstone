@@ -1,16 +1,16 @@
 /*
-	Name:		 CPPCode.cpp
+	Name:		 funcs.cpp
 	Created:	 1/22/2021
 	Author:	     Tim Hachey / Jesse Federkiewicz
-	Description: Arduino first test library...
-				 quite the learning curve up in here.
+	Description: Arduino Multi Motor direction
+				 
 
-	Jan 25: we have some basic pwm functionality and some basic encoder readings.
+	Jan 25: we have some pwm functionality and motor direction control and some basic encoder readings.
 			next up add some interrupt timers so we can count encoder readings per time frame
 
 */
 
-#include "CPPCode.h"
+#include "funcs.h"
 #include "driver/mcpwm.h"
 #include "esp32-hal.h"
 #include "HardwareSerial.h"
@@ -115,7 +115,7 @@ void Main() {
 
 	// main loop
 	for (;;)
-	{	
+	{
 		// ramp rpm up
 		for (int dutyCycle = 40; dutyCycle <= 100; dutyCycle++) {
 
@@ -150,3 +150,5 @@ void Main() {
 		gpio_set_level(GPIO_NUM_1, direction);
 	}
 }
+
+
