@@ -54,8 +54,8 @@ void PCNTSetup(Motor_Settings m1, Motor_Settings m2)
 	m1Enc.ctrl_gpio_num = PCNT_PIN_NOT_USED; // control pin not used
 	m1Enc.unit = PCNT_UNIT_0;                // motor 1 encoder readings using pcnt unit 0
 	m1Enc.channel = PCNT_CHANNEL_0;          // using unit 0 channel 0
-	m1Enc.pos_mode = PCNT_COUNT_INC;         // Count Only On Rising-Edges
-	m1Enc.neg_mode = PCNT_COUNT_DIS;	     // Discard Falling-Edge
+	m1Enc.pos_mode = PCNT_COUNT_INC;         // Count Rising-Edges and falling edges
+	m1Enc.neg_mode = PCNT_COUNT_INC;	     // 
 	m1Enc.lctrl_mode = PCNT_MODE_KEEP;       // Control mode: won't change counter mode
 	m1Enc.hctrl_mode = PCNT_MODE_KEEP;       // Control mode: won't change counter mode
 	m1Enc.counter_h_lim = INT16_MAX;
@@ -66,8 +66,8 @@ void PCNTSetup(Motor_Settings m1, Motor_Settings m2)
 	m2Enc.ctrl_gpio_num = PCNT_PIN_NOT_USED; // control pin not used
 	m2Enc.unit = PCNT_UNIT_1;				 // motor 2 encoder readings using pcnt unit 1
 	m2Enc.channel = PCNT_CHANNEL_0;          // using unit 1 channel 0
-	m2Enc.pos_mode = PCNT_COUNT_INC;         // Count Only On Rising-Edges
-	m2Enc.neg_mode = PCNT_COUNT_DIS;	     // Discard Falling-Edge
+	m2Enc.pos_mode = PCNT_COUNT_INC;         // Count Rising-Edges and falling edges
+	m2Enc.neg_mode = PCNT_COUNT_INC;	     // 
 	m2Enc.lctrl_mode = PCNT_MODE_KEEP;       // Control mode: won't change counter mode
 	m2Enc.hctrl_mode = PCNT_MODE_KEEP;       // Control mode: won't change counter mode
 	m2Enc.counter_h_lim = INT16_MAX;
@@ -132,6 +132,10 @@ void Main()
 	pwmconf.cmpr_a = 0;						 // initial duty of 0
 	pwmconf.cmpr_b = 0;
 
+	const int timerPrescale = 80;
+	const int timerClk = 80000000 / timerPrescale;
+	const int intTriggerPeriod_ms = 50;
+
 	// run setup for each motor
 	PWMSetup(m1, &pwmconf);
 	PWMSetup(m2, &pwmconf);
@@ -152,7 +156,7 @@ void Main()
 		Third Param:	Count mode (true) count up mode.
 		Return:			hw_timer_t (timer)
 	 */
-	timer = timerBegin(0, 80, true);
+	timer = timerBegin(0, timerPrescale, true);
 
 	/*
 		Attach Timer to ISR
@@ -168,7 +172,7 @@ void Main()
 		Second Param:	Timer counter value when interupt triggers, currently triggering every 1s (1000000) (1Mhz / 1000000)
 		Third Param:	Reset interrupt flag and timer counter (true)
 	*/
-	timerAlarmWrite(timer, 1000000, true);
+	timerAlarmWrite(timer, intTriggerPeriod_ms *1000, true);
 
 	/*
 		Enable alarm (interrupt)
@@ -185,7 +189,7 @@ void Main()
 		if (intFlag)
 		{
 			/*
-				RPM = (encoder count)/(211.2 counts per revolution)*(60 rpm)*(4 (only 1 rising edge reading)); 
+				RPM = (encoder count)/(211.2 counts per revolution)*(60 rpm)*(2 (only using 1 encoder signal))*(timerClk/intTriggerPeriodUs); 
 				motor specs: https://www.pololu.com/product/4861
 			*/
 			pcnt_get_counter_value(PCNT_UNIT_0, &enc_count1);
@@ -193,11 +197,11 @@ void Main()
 
 			Serial.print("RPM1:");
 
-			Serial.println((float)enc_count1 / 211.2 * 240.0); 
+			Serial.println((float)enc_count1 / 211.2 * 120.0 * (float)(timerClk / intTriggerPeriod_ms));
 
 			Serial.print("RPM2:");
 
-			Serial.println((float)enc_count2 / 211.2 * 240.0);
+			Serial.println((float)enc_count2 / 211.2 * 120.0 * (float)(timerClk / intTriggerPeriod_ms));
 
 			pcnt_counter_clear(PCNT_UNIT_0);
 			pcnt_counter_clear(PCNT_UNIT_1);
