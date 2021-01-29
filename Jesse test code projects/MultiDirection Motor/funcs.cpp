@@ -137,7 +137,7 @@ void Main() {
 
 			encRead1 = mcpwm_capture_signal_get_value(m1.pwm.unit, m1.encoder.capSignal);
 			encRead2 = mcpwm_capture_signal_get_value(m2.pwm.unit, m2.encoder.capSignal);
-
+		
 			delay(80);
 		}
 		delay(1000);
