@@ -7,15 +7,17 @@
 
 	Jan 25: we have some basic pwm functionality and some basic encoder readings.
 			next up add some interrupt timers so we can count encoder readings per time frame
-	
+
 	Jan 26: added some basic directional control using GPIO 1 to an inverter and then the h-bridge
 
 */
 #include "CPPCode.h"
 #include "driver/mcpwm.h"
 #include "esp32-hal.h"
-#include "HardwareSerial.h"
 #include "driver/gpio.h"
+#include "HardwareSerial.h"
+#include "driver/timer.h"
+#include "arduino.h"
 
 // custom structs to hold several emuns that are needed for configs/inits/setting duty:
 
@@ -101,10 +103,11 @@ void Main() {
 	uint encRead2 = 0;
 
 	// setup gpio pin 1 for direction control
+	gpio_num_t dirPin = GPIO_NUM_1;
 	gpio_config_t dirConfig;
 	dirConfig.intr_type = GPIO_INTR_DISABLE;
 	dirConfig.mode = GPIO_MODE_OUTPUT;
-	dirConfig.pin_bit_mask = 0b10; // bit #1
+	dirConfig.pin_bit_mask = 0b10; // bit #1 for pin 1
 	dirConfig.pull_down_en = GPIO_PULLDOWN_ENABLE;
 	dirConfig.pull_up_en = GPIO_PULLUP_ENABLE;
 
@@ -113,6 +116,9 @@ void Main() {
 	// set gpio 1 high for now
 	int direction = 1;
 	gpio_set_level(GPIO_NUM_1, direction);
+
+
+	//Serial.begin(115200);
 
 	// main loop
 	for (;;)
@@ -124,7 +130,12 @@ void Main() {
 			mcpwm_set_duty(m2.pwm.unit, m2.pwm.timer, m2.pwm.opOut, dutyCycle);
 
 			encRead1 = mcpwm_capture_signal_get_value(m1.pwm.unit, m1.encoder.capSignal);
-			encRead1 = mcpwm_capture_signal_get_value(m2.pwm.unit, m2.encoder.capSignal);
+			encRead2 = mcpwm_capture_signal_get_value(m2.pwm.unit, m2.encoder.capSignal);
+
+		/*	Serial.print("Enc1: ");
+			Serial.println(encRead1, DEC);
+			Serial.print("Enc2: ");
+			Serial.println(encRead2, DEC);*/
 
 			delay(80);
 		}
@@ -139,6 +150,11 @@ void Main() {
 			encRead1 = mcpwm_capture_signal_get_value(m1.pwm.unit, m1.encoder.capSignal);
 			encRead2 = mcpwm_capture_signal_get_value(m2.pwm.unit, m2.encoder.capSignal);
 
+	/*		Serial.print("Enc1: ");
+			Serial.println(encRead1, DEC);
+			Serial.print("Enc2: ");
+			Serial.println(encRead2, DEC);*/
+			
 			delay(80);
 		}
 		delay(1000);
