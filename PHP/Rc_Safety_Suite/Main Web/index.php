@@ -35,7 +35,7 @@ if( !isset($_SESSION["user"])) // not authenticated, does exist
         ?>
         </div>
         <div id = "messages">
-        Messages<br>RealTime Monitor
+        Messages<br><a href = "./carControl.php">Car Control</a>
         </div>
 
         <input type="submit" name="submit" value="logout" id = logoutBtn>
