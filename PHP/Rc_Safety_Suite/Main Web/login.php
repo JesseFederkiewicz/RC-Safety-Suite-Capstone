@@ -3,7 +3,7 @@
     require_once "./functions.php";
     require_once "./inc/db.php";
 
-    $responseParams['response'] = "Awaiting Login Attempt...";
+    $responseParams['response'] = "Awaiting Initial Login Attempt...";
     //Form Processing//
 
     //logout processing
@@ -22,7 +22,7 @@
         //Populate Validate() params, then invoke 
         $loginParams = array();
 
-        $loginParams['user'] = strip_tags($_POST['user']);
+        $loginParams['user'] = strtolower(strip_tags($_POST['user']));
         $loginParams['password'] = strip_tags($_POST['password']);
 
         $responseParams = Validate($loginParams);
@@ -49,21 +49,22 @@
     <link rel="stylesheet" href="style.css">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ica03 - login</title>
+    <title>ica04 - login</title>
     <script src="//ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 </head>
 <body>
     <div class = hdr>
-        <h1 class = 'font-effect-3d text-center'>Jesse / Tim Capstone - Login</h1>
+        <h1 class = 'font-effect-3d text-center'>Login</h1>
     </div>
 
 
         <form action="login.php" method="post" id = "loginSite">
             <div id = usnLbl class = text-right>UserName : </div><input type = "text" name="user" placeholder="Username" id = usnInput><div id = usn>(admin)</div>
-            <div id = pswLbl class = text-right>Password : </div><input type = "text" name="password" placeholder="Password" id = pswInput><div id = psw>(god)</div>
+            <div id = pswLbl class = text-right>Password : </div><input type = "password" name="password" placeholder="Password" id = pswInput><div id = psw>(god)</div>
 
             <!-- 2 submits (login and logout buttons) -->
             <div id = btnDiv><input type = "submit" name = "submit" value = "login" id = loginBtn></div>
+            <div id = AccCreateOrLoginDiv>Don't have an account? <br> <a href = "./createAccount.php">Create Account</a></div>
             <!-- <input type = "submit" name = "submit" value = "logout"> -->
         </form>
 

@@ -58,22 +58,25 @@
     <link rel="stylesheet" href="style.css">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ica03 - Add user</title>
+    <title>ica04 - Add user</title>
     <script src="//ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script src = "./js/settings.js"></script>
     <script src = "./js/ajax.js"></script>
 </head>
 <body>
     <div class = hdr>
-        <h1 class = 'font-effect-3d text-center'><?php echo "ica03 Settings: {$_SESSION['user']}"; ?></h1>
+        <h1 class = 'font-effect-3d text-center'><?php echo "ica04 Settings: {$_SESSION['user']}"; ?></h1>
     </div>
 
      <div id = "addUserSite">
         <div id = addUsrLbl class = text-right>UserName : </div><input type = "text" name="user" placeholder="Username" id = addUsrInput>
-        <div id = addPswLbl class = text-right>Password : </div><input type = "text" name="password" placeholder="Password" id = addPswInput>
+        <div id = addPswLbl class = text-right>Password : </div><input type = "password" name="password" placeholder="Password" id = addPswInput>
 
         <!-- 2 submits (login and logout buttons) -->
-        <div id = addUsrBtnDiv><input type = "submit" name = "addUsr" value = "Add User" id = addUsrBtn></div>
+        <div id = addUsrBtnDiv><input type = "submit" name = "addUsr" value = "Add User" id = addUsrBtn>
+        <a href = "./index.php">
+        <input type = "button" name = "toIndex" value = "To Index" id = toIndexBtn></div>
+        </a></div>
         <!-- <input type = "submit" name = "submit" value = "logout"> -->
     </div>  
 

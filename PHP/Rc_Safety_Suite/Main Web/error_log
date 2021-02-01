@@ -1,16 +1,102 @@
-[22-Jan-2021 10:12:55 MST] PHP Warning:  error_log() expects parameter 1 to be string, object given in /home/jfederki/public_html/cmpe2500/ICAs/ica03/functions.php on line 26
-[22-Jan-2021 10:12:55 MST] PHP Fatal error:  Uncaught Error: Cannot use object of type mysqli_result as array in /home/jfederki/public_html/cmpe2500/ICAs/ica03/functions.php:27
-Stack trace:
-#0 /home/jfederki/public_html/cmpe2500/ICAs/ica03/login.php(27): Validate(Array)
-#1 {main}
-  thrown in /home/jfederki/public_html/cmpe2500/ICAs/ica03/functions.php on line 27
-[22-Jan-2021 10:28:03 MST] PHP Fatal error:  Uncaught Error: Cannot use object of type mysqli_result as array in /home/jfederki/public_html/cmpe2500/ICAs/ica03/functions.php:27
-Stack trace:
-#0 /home/jfederki/public_html/cmpe2500/ICAs/ica03/login.php(27): Validate(Array)
-#1 {main}
-  thrown in /home/jfederki/public_html/cmpe2500/ICAs/ica03/functions.php on line 27
-[22-Jan-2021 10:31:47 MST] PHP Fatal error:  Uncaught Error: Call to undefined method mysqli_result::fetsh_assoc() in /home/jfederki/public_html/cmpe2500/ICAs/ica03/functions.php:26
-Stack trace:
-#0 /home/jfederki/public_html/cmpe2500/ICAs/ica03/login.php(27): Validate(Array)
-#1 {main}
-  thrown in /home/jfederki/public_html/cmpe2500/ICAs/ica03/functions.php on line 26
+
+[29-Jan-2021 09:40:14 MST] usn: {$userName}\npsw: {$password}
+[29-Jan-2021 09:41:00 MST] usn: godusn
+psw: $2y$10$3KxDHzObc.RG89omgpdaHuTu/KqAe96i.GFGmqgAyb5OiT9Y6gn6e
+[29-Jan-2021 09:43:46 MST] Inserting usn: godUsn... inserting psw: $2y$10$Iy4RL.DQEJ60ndBDO3vRwuYU2ZTFEWDK0A2VjNDhLWeKRkodacdoa
+[29-Jan-2021 09:46:36 MST] Inserting usn: godUsn... inserting psw: $2y$10$sGtdytzpXaYligJKQIx9EOIo3eWz1TKxF5tJOpbePcj/9PzgSapgS
+[29-Jan-2021 09:46:52 MST] Inserting usn: godUsn... inserting psw: $2y$10$lS89oK0/50iT/HYw1iGcbeGY6Ihvb7vS/uELRRpKmCBKbc9TrrZym
+[29-Jan-2021 09:47:06 MST] Inserting usn: godUsn... inserting psw: $2y$10$.05FGml0n5Y8NhKpJW9CHe2MlBxhS4l.WivN01eczfPTXUsHHxhD.
+[29-Jan-2021 09:47:06 MST] Inserting usn: godUsn... inserting psw: $2y$10$Dcawc/J5C.gZzGmmXnGlme16FOmNDM0iJCsBZ0PHnppVrXTOybYaS
+[29-Jan-2021 09:48:35 MST] Inserting usn: godUsn... inserting psw: $2y$10$EN/9N4AQ8NqkMfVXfJxPmuibWaYfInZWj.WDXKnNrwSwUoCPHRgty
+[29-Jan-2021 09:48:57 MST] Inserting usn: godUsn2... inserting psw: $2y$10$acWo8yRniSQKhQwWZpDA2uS595HQqi0VteXZWqfHfT/.A4iAjTkce
+[29-Jan-2021 09:55:56 MST] Inserting usn: godUsn3... inserting psw: $2y$10$qRRNqAufqCUMs3xen2EHNOKKdJQvog.S4x5RDC47zI8JtazYeaqmu
+[29-Jan-2021 09:56:57 MST] Inserting usn: testUsn... inserting psw: $2y$10$S4myNPS8qeUhSvlH6nHXueg5BH/yPyQR5O0rZK2cVk/pM9weFRkq6
+[29-Jan-2021 09:57:08 MST] Inserting usn: testUsn2... inserting psw: $2y$10$wlDEcrSmKhyy07i2VLuVluUKyLrBa8Q.AGZnHQaffCfeaCQNfABQu
+[29-Jan-2021 09:59:31 MST] Inserting usn: testUsn3... inserting psw: $2y$10$2Qma7y/mvHw844vHLE2g0.j7uYo2LyAZzdb2UYaSdxqS8v63rff4K
+[29-Jan-2021 10:01:03 MST] Inserting usn: testUsn4... inserting psw: $2y$10$fotnQuCk.HfT10fRlK1I6ez0eQR9gGquKtvJmGipKuxtg8/.gOpYm
+[29-Jan-2021 10:01:30 MST] Inserting usn: testUsn5... inserting psw: $2y$10$Jq8q8hFPDWXbnr3BhkU7NeTwzmp95MvuJBf1bIwYjTFdV06lTgqf.
+[29-Jan-2021 10:02:10 MST] Inserting usn: testUsn6... inserting psw: $2y$10$0DWl03kh9GIGiWaOTRs6duXXmbrLbSh9MOvguMFTTffWnogXB2leu
+[29-Jan-2021 10:02:15 MST] Inserting usn: testUsn7... inserting psw: $2y$10$RuYvkwS/ZK9ZLFF6N6cmWuYhkEQ6Tir6D59yUYJgZjsWnxvIYSgfK
+[29-Jan-2021 10:02:43 MST] Inserting usn: testUsn8... inserting psw: $2y$10$KZXmIDUUU8rQkp4TkMTEEufJvs7zhJUXk5d3YWjHvPABadq3e82qq
+[29-Jan-2021 10:03:00 MST] Inserting usn: mynameisjeff... inserting psw: $2y$10$E3A6bmWv9g4/thZ8jS9UP.FfhqrLEH9vSLLhJ0vVGZn0fgMdmZ0EG
+[29-Jan-2021 10:03:49 MST] Inserting usn: mynameisjeff2... inserting psw: $2y$10$0aRfQjZWr1xMiUJhLcEuK.HVcLbnGFLcNkdfB2pdLYMswHpBhvHe2
+[29-Jan-2021 10:28:30 MST] Deleting userID: 10
+[29-Jan-2021 10:28:31 MST] Deleting userID: 10
+[29-Jan-2021 10:28:32 MST] Deleting userID: 10
+[29-Jan-2021 10:28:32 MST] Deleting userID: 10
+[29-Jan-2021 10:28:33 MST] Deleting userID: 10
+[29-Jan-2021 10:28:33 MST] Deleting userID: 10
+[29-Jan-2021 10:28:33 MST] Deleting userID: 10
+[29-Jan-2021 10:28:33 MST] Deleting userID: 10
+[29-Jan-2021 10:28:34 MST] Deleting userID: 10
+[29-Jan-2021 10:28:34 MST] Deleting userID: 10
+[29-Jan-2021 10:28:34 MST] Deleting userID: 10
+[29-Jan-2021 10:28:41 MST] Deleting userID: 20
+[29-Jan-2021 10:28:41 MST] Deleting userID: 19
+[29-Jan-2021 10:28:42 MST] Deleting userID: 19
+[29-Jan-2021 10:28:42 MST] Deleting userID: 19
+[29-Jan-2021 10:28:43 MST] Deleting userID: 19
+[29-Jan-2021 10:29:05 MST] Deleting userID: 10
+[29-Jan-2021 10:29:06 MST] Deleting userID: 10
+[29-Jan-2021 10:29:07 MST] Deleting userID: 10
+[29-Jan-2021 10:29:07 MST] Deleting userID: 10
+[29-Jan-2021 10:29:07 MST] Deleting userID: 10
+[29-Jan-2021 10:29:07 MST] Deleting userID: 10
+[29-Jan-2021 10:29:08 MST] Deleting userID: 10
+[29-Jan-2021 10:30:24 MST] Deleting userID: 9
+[29-Jan-2021 10:32:30 MST] Deleting userID: 13
+[29-Jan-2021 10:32:31 MST] Deleting userID: 13
+[29-Jan-2021 10:32:31 MST] Deleting userID: 13
+[29-Jan-2021 10:32:32 MST] Deleting userID: 13
+[29-Jan-2021 10:32:32 MST] Deleting userID: 13
+[29-Jan-2021 10:32:32 MST] Deleting userID: 13
+[29-Jan-2021 10:32:32 MST] Deleting userID: 13
+[29-Jan-2021 10:32:32 MST] Deleting userID: 13
+[29-Jan-2021 10:32:32 MST] Deleting userID: 13
+[29-Jan-2021 10:32:33 MST] Deleting userID: 13
+[29-Jan-2021 10:32:33 MST] Deleting userID: 13
+[29-Jan-2021 10:32:33 MST] Deleting userID: 13
+[29-Jan-2021 10:32:33 MST] Deleting userID: 13
+[29-Jan-2021 10:32:33 MST] Deleting userID: 13
+[29-Jan-2021 10:32:33 MST] Deleting userID: 13
+[29-Jan-2021 10:32:33 MST] Deleting userID: 13
+[29-Jan-2021 10:32:34 MST] Deleting userID: 13
+[29-Jan-2021 10:32:34 MST] Deleting userID: 13
+[29-Jan-2021 10:32:34 MST] Deleting userID: 13
+[29-Jan-2021 10:32:35 MST] Deleting userID: 13
+[29-Jan-2021 10:32:35 MST] Deleting userID: 13
+[29-Jan-2021 10:32:35 MST] Deleting userID: 13
+[29-Jan-2021 10:32:35 MST] Deleting userID: 13
+[29-Jan-2021 10:32:35 MST] Deleting userID: 13
+[29-Jan-2021 10:35:50 MST] Deleting userID: 13
+[29-Jan-2021 10:35:50 MST] Deleting userID: 13
+[29-Jan-2021 10:35:50 MST] Deleting userID: 13
+[29-Jan-2021 10:35:51 MST] Deleting userID: 13
+[29-Jan-2021 10:35:51 MST] Deleting userID: 13
+[29-Jan-2021 10:35:51 MST] Deleting userID: 13
+[29-Jan-2021 10:35:51 MST] Deleting userID: 13
+[29-Jan-2021 10:35:51 MST] Deleting userID: 13
+[29-Jan-2021 10:35:52 MST] Deleting userID: 12
+[29-Jan-2021 10:35:52 MST] Deleting userID: 12
+[29-Jan-2021 10:35:53 MST] Deleting userID: 12
+[29-Jan-2021 10:35:53 MST] Deleting userID: 12
+[29-Jan-2021 10:37:24 MST] Deleting userID: 11
+[29-Jan-2021 10:37:37 MST] Deleting userID: 19
+[29-Jan-2021 10:37:38 MST] Deleting userID: 19
+[29-Jan-2021 10:37:39 MST] Deleting userID: 19
+[29-Jan-2021 10:37:39 MST] Deleting userID: 19
+[29-Jan-2021 10:37:39 MST] Deleting userID: 18
+[29-Jan-2021 10:38:15 MST] Deleting userID: 13
+[29-Jan-2021 10:39:03 MST] PHP Warning:  session_start(): open(/var/cpanel/php/sessions/ea-php72/sess_9065586b7108fb74074cf249bcbc4f17, O_RDWR) failed: Permission denied (13) in /home/jfederki/public_html/cmpe2500/ICAs/ica04/inc/db.php on line 3
+[29-Jan-2021 10:39:03 MST] PHP Warning:  session_start(): Failed to read session data: files (path: /var/cpanel/php/sessions/ea-php72) in /home/jfederki/public_html/cmpe2500/ICAs/ica04/inc/db.php on line 3
+[29-Jan-2021 10:39:03 MST] PHP Warning:  session_start(): open(/var/cpanel/php/sessions/ea-php72/sess_9065586b7108fb74074cf249bcbc4f17, O_RDWR) failed: Permission denied (13) in /home/jfederki/public_html/cmpe2500/ICAs/ica04/inc/db.php on line 3
+[29-Jan-2021 10:39:03 MST] PHP Warning:  session_start(): Failed to read session data: files (path: /var/cpanel/php/sessions/ea-php72) in /home/jfederki/public_html/cmpe2500/ICAs/ica04/inc/db.php on line 3
+[29-Jan-2021 10:39:18 MST] PHP Warning:  session_start(): open(/var/cpanel/php/sessions/ea-php72/sess_9065586b7108fb74074cf249bcbc4f17, O_RDWR) failed: Permission denied (13) in /home/jfederki/public_html/cmpe2500/ICAs/ica04/inc/db.php on line 3
+[29-Jan-2021 10:39:18 MST] PHP Warning:  session_start(): Failed to read session data: files (path: /var/cpanel/php/sessions/ea-php72) in /home/jfederki/public_html/cmpe2500/ICAs/ica04/inc/db.php on line 3
+[29-Jan-2021 10:39:18 MST] PHP Warning:  session_start(): open(/var/cpanel/php/sessions/ea-php72/sess_9065586b7108fb74074cf249bcbc4f17, O_RDWR) failed: Permission denied (13) in /home/jfederki/public_html/cmpe2500/ICAs/ica04/inc/db.php on line 3
+[29-Jan-2021 10:39:18 MST] PHP Warning:  session_start(): Failed to read session data: files (path: /var/cpanel/php/sessions/ea-php72) in /home/jfederki/public_html/cmpe2500/ICAs/ica04/inc/db.php on line 3
+[29-Jan-2021 10:39:18 MST] PHP Warning:  session_start(): open(/var/cpanel/php/sessions/ea-php72/sess_9065586b7108fb74074cf249bcbc4f17, O_RDWR) failed: Permission denied (13) in /home/jfederki/public_html/cmpe2500/ICAs/ica04/inc/db.php on line 3
+[29-Jan-2021 10:39:18 MST] PHP Warning:  session_start(): Failed to read session data: files (path: /var/cpanel/php/sessions/ea-php72) in /home/jfederki/public_html/cmpe2500/ICAs/ica04/inc/db.php on line 3
+[29-Jan-2021 10:40:01 MST] Inserting usn: jeff... inserting psw: $2y$10$keXgVf9kPdCwcdEeRztNcub7sJOWLeXg382cw.LgfyhZTD9hO8RVO
+[29-Jan-2021 10:40:12 MST] Deleting userID: 21
+[29-Jan-2021 10:40:22 MST] Inserting usn: jeff... inserting psw: $2y$10$1OxKCmrTUp8sNS3wtBgr1O4GzUekKl.LJ5nAhU5y6488/f61QbohW

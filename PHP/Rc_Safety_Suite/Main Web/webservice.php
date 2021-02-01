@@ -8,14 +8,10 @@ require_once "./functions.php";
 $gblData = array();   //gbl array?
 $status = "Failed Ajax Call";
 
-// Redirect if not authenticated
-if( !isset($_SESSION["user"])) // not authenticated, does exist
-{
-  // not logged in, turf him to login.php
-  header("location:login.php");// send user to login.php
-  die(); // in a hole
-}
-
+//////////////////////////////////////////////
+//  function Done()
+//  package up data
+//////////////////////////////////////////////
 function Done()
 {
     global $gblData, $status;
@@ -26,21 +22,44 @@ function Done()
     die();
 }
 
+//$allUserData = $allUserData->fetsh_assoc();
+if (isset($_POST['action']) && $_POST['action'] == 'AddUser')
+{
+    global $status;
+
+    //Lowercase the usn
+    $userName = strtolower($mysqli->real_escape_string($_POST['user']));
+
+    //Get real password and hash it (sql protection)
+    $password = password_hash($mysqli->real_escape_string($_POST['pass']), PASSWORD_DEFAULT);
+    
+    //Insert query and row response
+    $query = mysqliNonQuery("INSERT INTO users (username, password)
+                VALUES (\"$userName\",\"$password\")");
+
+    $status = "$query : records inserted";
+
+    //Pack up data
+    Done();
+}
+
 if (isset($_GET['action']) && $_GET['action'] == 'GetUsers')
 {
+    //Get all users
     $allUserData = mysqliQuery("select * from users");
 
     //Check if query was good
     if ($allUserData)
     {
-        //$allUserData = $allUserData->fetsh_assoc();
-
         //Foreach through all users and add to gblArr
         foreach ($allUserData as $key => $value)
-        {
             array_push($gblData, $value);
-        }
+        
+
+        //Get rows in table
         $status = $allUserData->num_rows;
+
+        //Pack up data
         Done();
     }
 
@@ -50,6 +69,32 @@ if (isset($_GET['action']) && $_GET['action'] == 'GetUsers')
         error_log("GET Query Failed");
         $status = "GET Query Failed";
     }
+}
+
+
+
+//Delete user
+if (isset($_POST['action']) && $_POST['action'] == 'DeleteUser')
+{
+    global $status;
+    
+    //Filter userId to delete
+    $userID = $mysqli->real_escape_string($_POST['userID']);
+
+    //Dont let them delete themselves
+    if ($_SESSION['userID'] != $userID)
+    {
+        //Deletion query
+        $query = mysqliNonQuery("DELETE from users where userID like \"$userID\"");
+        $status = "$query : records deleted";
+    }
+    
+    //Dont delete yourself
+    else
+        $status = "Don't delete yourself :( -facebook";
+
+    //Pack up
+    Done();
 }
 
 Done();
