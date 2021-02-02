@@ -22,7 +22,29 @@ function Done()
     die();
 }
 
-//$allUserData = $allUserData->fetsh_assoc();
+//Send XY data into db
+if (isset($_POST['action']) && $_POST['action'] == 'web_to_car_XY')
+{
+    //Insert query and row response
+    $query = mysqliNonQuery("UPDATE web_to_car
+    SET xCoord = {$_POST['xCoord']},
+        yCoord = {$_POST['yCoord']}
+        WHERE carID = {$_POST['carID']}");
+
+    $status = "$query : records inserted";
+}
+
+//Send timestamp data into db
+if (isset($_POST['action']) && $_POST['action'] == 'web_to_car_timeStamp')
+{
+    //Insert query and row response
+    $query = mysqliNonQuery("UPDATE web_to_car
+    SET timeStamp = {$_POST['timeStamp']}
+        WHERE carID = {$_POST['carID']}");
+
+    $status = "$query : records inserted";
+}
+
 if (isset($_POST['action']) && $_POST['action'] == 'AddUser')
 {
     global $status;
