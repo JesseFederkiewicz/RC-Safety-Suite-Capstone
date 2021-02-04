@@ -24,7 +24,7 @@
 #define ARDUINO_ESP32_DEV
 #define ARDUINO_ARCH_ESP32
 #define ESP32
-#define CORE_DEBUG_LEVEL 4
+#define CORE_DEBUG_LEVEL 0
 #define __cplusplus 201103L
 
 #define _Pragma(x)
@@ -104,6 +104,6 @@ typedef long pthread_cond_t;
 #define READ_PERI_REG(addr)
 // Write Value to Register
 #define WRITE_PERI_REG(addr,val)
-#include "LetsGetDemEncoderReadings.ino"
+#include "WirelessMotorControl.ino"
 #endif
 #endif
