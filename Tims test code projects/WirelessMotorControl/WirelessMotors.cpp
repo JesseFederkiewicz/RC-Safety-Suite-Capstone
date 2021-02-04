@@ -1,21 +1,18 @@
-/*
-	Name:		 CPPCode.cpp
-	Created:	 1/22/2021
-	Author:	     Tim Hachey
-	Description: Arduino first test library...
-				 quite the learning curve up in here.
-
-	Jan 25: we have some basic pwm functionality and some basic encoder readings.
-			next up add some interrupt timers so we can count encoder readings per time frame
-
-	Jan 26: added some basic directional control using GPIO 1 to an inverter and then the h-bridge
-
-*/
-#include "CPPCode.h"
+///////////////////////////////////////////////////////////////////////////////////////
+// File:        WirelessMotors.cpp
+// Author:      Tim Hachey
+// Description: now that we have wifi/database communication, 
+//				lets put it together and control the motors from the web!
+///////////////////////////////////////////////////////////////////////////////////////
+#include "WirelessMotors.h"
+#include "WiFi.h"
+#include "HTTPClient.h"
+#include "Arduino_JSON.h"
+#include "esp_wifi.h"
+#include "HardwareSerial.h"
 #include "driver/mcpwm.h"
 #include "esp32-hal.h"
 #include "driver/gpio.h"
-#include "HardwareSerial.h"
 #include "driver/timer.h"
 #include "arduino.h"
 
@@ -59,7 +56,8 @@ void PWMSetup(Motor_Settings m, mcpwm_config_t* unitConf)
 	mcpwm_capture_enable(m.pwm.unit, m.encoder.capSignal, m.encoder.edgeCapture, m.encoder.preScale);
 }
 
-void Main() {
+void Main()
+{
 	// motor one configs
 	Motor_Settings m1;
 	m1.pwm.unit = MCPWM_UNIT_0;               // m1 using pwm unit 0
@@ -117,38 +115,96 @@ void Main() {
 	int direction = 1;
 	gpio_set_level(GPIO_NUM_1, direction);
 
+	char* ssid = "hachey wifi";
+	const char* password = "38hachey";
+	const char* webService = "https://thor.net.nait.ca/~jfederki/cmpe2500/Rc_Safety_Suite/Main%20Web/webservice.php";
+	const char* postArgs = "action=GrabXYTimeStamp&carID=1";
+	const char* server = "thor.net.nait.ca";
 
-	//Serial.begin(115200);
+	Serial.begin(115200);
+	WiFi.begin(ssid, password);
 
-	// main loop
-	for (;;)
-	{	
-		// ramp rpm up
-		for (int dutyCycle = 40; dutyCycle <= 100; dutyCycle++) {
+	Serial.print("Connecting");
+	while (WiFi.status() != WL_CONNECTED) {
+		delay(500);
+		Serial.print(".");
+	}
+	Serial.println();
 
-			mcpwm_set_duty(m1.pwm.unit, m1.pwm.timer, m1.pwm.opOut, dutyCycle);
-			mcpwm_set_duty(m2.pwm.unit, m2.pwm.timer, m2.pwm.opOut, dutyCycle);
+	Serial.print("Connected, IP address: ");
+	Serial.println(WiFi.localIP());
 
-			delay(80);
-		}
-		delay(1000);
+	HTTPClient http;
 
-		// rpm down
-		for (int dutyCycle = 100; dutyCycle >= 40; dutyCycle--) {
+	JSONVar jason;
 
-			mcpwm_set_duty(m1.pwm.unit, m1.pwm.timer, m1.pwm.opOut, dutyCycle);
-			mcpwm_set_duty(m2.pwm.unit, m2.pwm.timer, m2.pwm.opOut, dutyCycle);
+	for (;;) {
+		if (WiFi.status() == WL_CONNECTED) {
 
+			if (!http.connected())
+				http.begin(webService);
+
+			http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+			int httpResponseCode = http.POST(postArgs);
+
+			if (httpResponseCode > 0)
+			{
+				Serial.println("HTTP Response code: ");
+				Serial.println(httpResponseCode);
+
+				String payload = http.getString();
+				delay(1);
+				Serial.println("Payload: ");
+				jason = JSON.parse(payload);
+				Serial.println(jason["xCoord"]);
+				Serial.println(jason["yCoord"]);
+				Serial.println(jason["timeStamp"]);
+			}
+
+			char* xCord = "50";
+			char* yCord = "50";
+
+			Serial.println("TEST1");
+
+			String one = JSON.stringify(jason["xCoord"]);
+			String two = JSON.stringify(jason["yCoord"]);
+
+			Serial.println("TEST2");
+
+		/*	one.toCharArray(xCord, sizeof(char) * 3, 0);
+			two.toCharArray(yCord, sizeof(char) * 3, 0);*/
+
+			Serial.println("TEST3");
+
+			int duty1 = strtol(xCord, nullptr, 10);
+			int duty2 = strtol(yCord, nullptr, 10);
+
+			/*int duty1 = atoi(XCord);
+			int duty2 = atoi(YCord)*/
+
+			Serial.print("String 1: ");
+			Serial.println(one);
+			Serial.print("String 2: ");
+			Serial.println(two);
+
+			Serial.print("xCord: ");
+			Serial.println(xCord);
+			Serial.print("yCord: ");
+			Serial.println(yCord);
 			
-			delay(80);
-		}
-		delay(1000);
+			Serial.print("Duty1: ");
+			Serial.println(duty1);
+			Serial.print("Duty2: ");
+			Serial.println(duty2);
 
-		if (direction)
-			direction = 0;
-		else
-			direction++;
+			Serial.println("TEST4");
 
-		gpio_set_level(GPIO_NUM_1, direction);
+			delay(100);
+
+			//mcpwm_set_duty(m1.pwm.unit, m1.pwm.timer, m1.pwm.opOut, duty1);
+			//mcpwm_set_duty(m2.pwm.unit, m2.pwm.timer, m2.pwm.opOut, duty2);
+
+			delay(100);
+		}		
 	}
 }

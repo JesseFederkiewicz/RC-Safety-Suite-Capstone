@@ -10,7 +10,6 @@
 #include "WiFi.h"
 #include "HTTPClient.h"
 #include "Arduino_JSON.h"
-#include "SPI.h"
 
 void Main() {
 	char* ssid = "hachey wifi";
@@ -18,7 +17,6 @@ void Main() {
 	const char* webService = "https://thor.net.nait.ca/~jfederki/cmpe2500/Rc_Safety_Suite/Main%20Web/webservice.php";
 	const char* postArgs = "action=GrabXYTimeStamp&carID=1";
 	const char* server = "thor.net.nait.ca";
-
 
 	Serial.begin(115200);
 	WiFi.begin(ssid, password);
@@ -34,21 +32,16 @@ void Main() {
 	Serial.println(WiFi.localIP());	
 
 	HTTPClient http;
-	WiFiClient client;
 
 	for (;;) {
 		if (WiFi.status() == WL_CONNECTED) {				
 
-			//Your Domain name with URL path or IP address with path
 			if(!http.connected())
 				http.begin(webService);
 
 			http.addHeader("Content-Type", "application/x-www-form-urlencoded");
 			int httpResponseCode = http.POST(postArgs);
-
-			//http.addHeader("Content-Type", "application/json");
-			//int httpResponseCode = http.POST("{\"action\":\"GrabXYTimeStamp\",\"carID\":\"1\"}");
-
+			
 			if (httpResponseCode > 0) 
 			{
 				Serial.println("HTTP Response code: ");
@@ -66,10 +59,7 @@ void Main() {
 			{
 				Serial.println("BAD RESPONSE");		
 			}
-
-			Serial.println("\nEND");
-
-			//http.end();	
+			Serial.println("\nEND");	
 		}
 	}
 }

@@ -4,7 +4,6 @@
  Author:	Tim
 */
 
-// refer here for all code:
 #include "CPPCode.h"
 
 void setup() {
