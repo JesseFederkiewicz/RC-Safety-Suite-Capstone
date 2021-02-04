@@ -1,5 +1,12 @@
 // used as guide: -- https://www.cssscript.com/touch-joystick-controller/ 
 
+let carNum = 1; //to be determined from dropdown
+let lastX = 0;
+let lastY = 0;
+let lastTime = 0;
+let xVal = 0;
+let yVal = 0;
+
 class JoystickController
 {
 	// stickID: ID of HTML element (representing joystick) that will be dragged
@@ -38,7 +45,7 @@ class JoystickController
 
 			// if this is a touch event, keep track of which one
 		    if (event.changedTouches)
-		    	self.touchId = event.changedTouches[0].identifier;
+                self.touchId = event.changedTouches[0].identifier;                            
 		}
 		
 		function handleMove(event) 
@@ -81,11 +88,14 @@ class JoystickController
             const yPercent = parseFloat((yPosition2 / maxDistance).toFixed(4));
 
             //Matches up with 'duty' cycle on micro if range is 0-100
-            const xVal = parseFloat((xPosition2 / maxDistance * 100)).toFixed(0); 
-		    const yVal = parseFloat((yPosition2 / maxDistance * 100)).toFixed(0);
+            xVal = parseFloat((xPosition2 / maxDistance * 100)).toFixed(0); 
+		    yVal = parseFloat((yPosition2 / maxDistance * 100)).toFixed(0);
 		    
             // self.value = { x: xPercent, y: yPercent };
             self.value = { x: xVal, y: yVal };
+
+            //Send data to db via ajax
+            SendXY(false);
 		  }
 
 		function handleUp(event) 
@@ -102,7 +112,10 @@ class JoystickController
 		    // reset everything
 		    self.value = { x: 0, y: 0 };
 		    self.touchId = null;
-		    self.active = false;
+            self.active = false;
+            
+            //Send 0's
+            SendXY(true);
 		}
 
 		stick.addEventListener('mousedown', handleDown);
@@ -121,6 +134,20 @@ $(document).ready ( () => {
     function update()
     {
         document.getElementById("status1").innerText = "Joystick: " + JSON.stringify(joyStick.value);
+
+        //Send data to db via ajax
+        let data = {};
+        data['action'] = 'web_to_car_timeStamp';
+        data['carID'] = carNum;
+        //Date.now() returns number of ms from January 1, 1970, parsed to keep track of 1 minute in ms
+        //For unsigned 16bit int (0 - 65,535), and as little wrapping as little as possible
+        //If mem space is required can easily be reduced further
+        data['timeStamp'] = Date.now() % 60000;     //returns number of ms from January 1, 1970, good for timeout comparison
+                                                    //parsed to last 4 digits for data storage as its essentially acting as a timer
+                
+        // //Send ajax request
+        if (data['timeStamp'] % 10 == 0)
+            AjaxRequest('./webservice.php', 'POST', data, 'json', HandleStatus, Fail)
     }
 
     function loop()
@@ -132,3 +159,72 @@ $(document).ready ( () => {
     loop();
 
 });
+
+//////////////////////////////////////////////
+//  function HandleStatus (data, response)
+//  Args:
+//          data        : ajax response data
+//          response    : ajax response
+//////////////////////////////////////////////
+function HandleStatus(data, response)
+{
+    $('#connectionStatus').html("GOOD AJAX REQUEST!");
+}
+
+//////////////////////////////////////////////
+//  function Fail (errorMessage)
+//  Args:
+//          errormessage : ajax response data
+//////////////////////////////////////////////
+function Fail(errorMessage)
+{
+    $('#connectionStatus').html("BAD AJAX REQUEST!");
+}
+
+function ShouldSendData(data)
+{
+    let shouldRet = false;
+
+    //If XCoord has moved significantly or its been over ~100ms
+    if (data['xCoord'] - lastX > 50 || data['yCoord'] - lastY > 50 || data['timeStamp'] - lastTime > 99)
+        shouldSend = true;
+
+    lastX = data['xCoord'];
+    lastY = data['yCoord'];
+
+    if (data['yCoord'] == 0 && data['xCoord'] == 0)
+        shouldSend = true;
+
+    return  shouldSend;
+}
+
+function SendXY(isRelease)
+{
+    let data = {};
+    data['action'] = 'web_to_car_XY';
+    data['carID'] = carNum;              //to be gotten through dropdown later on TODO, dont even need to send here, on label change?
+
+    if (isRelease)
+    {
+        data['xCoord'] = 0;
+        data['yCoord'] = 0;
+    }
+    else
+    {
+        data['xCoord'] = xVal;
+        data['yCoord'] = yVal;
+    }
+            //Date.now() returns number of ms from January 1, 1970, parsed to keep track of 1 minute in ms
+    //For unsigned 16bit int (0 - 65,535), and as little wrapping as little as possible
+    //If mem space is required can easily be reduced further
+    data['timeStamp'] = Date.now() % 60000;     //returns number of ms from January 1, 1970, good for timeout comparison
+    //parsed to last 4 digits for data storage as its essentially acting as a timer
+
+    let shouldSend = ShouldSendData(data);
+            
+    //Overload THOR... built an algorithm to determine if a send is warrented or not for the effective movement of the car
+    //ie dont send swiping all the way from left to right up and down, only send a couple points and the final result...
+    //so we don't hurt nait servers and get better responsiveness in car
+    if (shouldSend)
+        AjaxRequest('./webservice.php', 'POST', data, 'json', HandleStatus, Fail)
+}
