@@ -93,9 +93,6 @@ class JoystickController
 		    
             // self.value = { x: xPercent, y: yPercent };
             self.value = { x: xVal, y: yVal };
-
-            //Send data to db via ajax
-            SendXY(false);
 		  }
 
 		function handleUp(event) 
@@ -112,10 +109,12 @@ class JoystickController
 		    // reset everything
 		    self.value = { x: 0, y: 0 };
 		    self.touchId = null;
-            self.active = false;
-            
-            //Send 0's
-            SendXY(true);
+			self.active = false;
+			
+			
+			//If lift put back to 0
+			xVal = 0;
+			yVal = 0;
 		}
 
 		stick.addEventListener('mousedown', handleDown);
@@ -128,36 +127,25 @@ class JoystickController
 }
 
 $(document).ready ( () => {
-
-    let joyStick = new JoystickController("joyStick", 64, 8);
+  
+	let joyStick = new JoystickController("joyStick", 64, 8);
+	
 
     function update()
     {
         document.getElementById("status1").innerText = "Joystick: " + JSON.stringify(joyStick.value);
-
-        //Send data to db via ajax
-        let data = {};
-        data['action'] = 'web_to_car_timeStamp';
-        data['carID'] = carNum;
-        //Date.now() returns number of ms from January 1, 1970, parsed to keep track of 1 minute in ms
-        //For unsigned 16bit int (0 - 65,535), and as little wrapping as little as possible
-        //If mem space is required can easily be reduced further
-        data['timeStamp'] = Date.now() % 60000;     //returns number of ms from January 1, 1970, good for timeout comparison
-                                                    //parsed to last 4 digits for data storage as its essentially acting as a timer
-                
-        // //Send ajax request
-        if (data['timeStamp'] % 10 == 0)
-            AjaxRequest('./webservice.php', 'POST', data, 'json', HandleStatus, Fail)
     }
 
     function loop()
     {
         requestAnimationFrame(loop);
-        update();
+		update();
     }
 
-    loop();
-
+	loop();
+	let interval = 200;
+	setInterval(SendData, interval);   
+	setInterval(FetchData, interval * .8);
 });
 
 //////////////////////////////////////////////
@@ -181,12 +169,13 @@ function Fail(errorMessage)
     $('#connectionStatus').html("BAD AJAX REQUEST!");
 }
 
+//Dormant as now on fixed time
 function ShouldSendData(data)
 {
     let shouldRet = false;
 
-    //If XCoord has moved significantly or its been over ~100ms
-    if (data['xCoord'] - lastX > 50 || data['yCoord'] - lastY > 50 || data['timeStamp'] - lastTime > 99)
+    //If XCoord has moved significantly or its been over ~500ms
+    if (data['xCoord'] - lastX > 50 || data['yCoord'] - lastY > 50 || data['timeStamp'] - lastTime > 499)
         shouldSend = true;
 
     lastX = data['xCoord'];
@@ -198,33 +187,38 @@ function ShouldSendData(data)
     return  shouldSend;
 }
 
-function SendXY(isRelease)
+function CarSimReq(data, response)
 {
-    let data = {};
-    data['action'] = 'web_to_car_XY';
-    data['carID'] = carNum;              //to be gotten through dropdown later on TODO, dont even need to send here, on label change?
+	$("#XYFeedBackTest").html("X = ");
+	$("#XYFeedBackTest").append(data['xCoord']);
+	$("#XYFeedBackTest").append("<br>Y = ");
+	$("#XYFeedBackTest").append(data['yCoord']);
+	$("#XYFeedBackTest").append("<br>TimeStamp = ");
+	$("#XYFeedBackTest").append(data['timeStamp']);
+}
 
-    if (isRelease)
-    {
-        data['xCoord'] = 0;
-        data['yCoord'] = 0;
-    }
-    else
-    {
-        data['xCoord'] = xVal;
-        data['yCoord'] = yVal;
-    }
+//Happens every 250ms send data to webserver
+function SendData()
+{
+	let data = {};
+    data['action'] = 'web_to_car_Data';
+    data['carID'] = carNum;              
+
+	data['xCoord'] = xVal;
+	data['yCoord'] = yVal;
+    
             //Date.now() returns number of ms from January 1, 1970, parsed to keep track of 1 minute in ms
     //For unsigned 16bit int (0 - 65,535), and as little wrapping as little as possible
     //If mem space is required can easily be reduced further
     data['timeStamp'] = Date.now() % 60000;     //returns number of ms from January 1, 1970, good for timeout comparison
     //parsed to last 4 digits for data storage as its essentially acting as a timer
 
-    let shouldSend = ShouldSendData(data);
-            
-    //Overload THOR... built an algorithm to determine if a send is warrented or not for the effective movement of the car
-    //ie dont send swiping all the way from left to right up and down, only send a couple points and the final result...
-    //so we don't hurt nait servers and get better responsiveness in car
-    if (shouldSend)
-        AjaxRequest('./webservice.php', 'POST', data, 'json', HandleStatus, Fail)
+	AjaxRequest('./webservice.php', 'POST', data, 'json', HandleStatus, Fail)
+}
+
+function FetchData()
+{
+	let data = {};
+    data['action'] = 'GrabXYTimeStamp';
+	AjaxRequest('./webservice.php', 'POST', data, 'json', CarSimReq, Fail);
 }

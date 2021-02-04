@@ -20,6 +20,10 @@
     <div id = connectionStatus>
     </div>
 
+    <div id = XYFeedBackTest>
+    HERE
+    </div>
+
 </div>
 </body>
 </html>

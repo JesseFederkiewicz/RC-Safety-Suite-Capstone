@@ -23,23 +23,13 @@ function Done()
 }
 
 //Send XY data into db
-if (isset($_POST['action']) && $_POST['action'] == 'web_to_car_XY')
+if (isset($_POST['action']) && $_POST['action'] == 'web_to_car_Data')
 {
     //Insert query and row response
     $query = mysqliNonQuery("UPDATE web_to_car
     SET xCoord = {$_POST['xCoord']},
-        yCoord = {$_POST['yCoord']}
-        WHERE carID = {$_POST['carID']}");
-
-    $status = "$query : records inserted";
-}
-
-//Send timestamp data into db
-if (isset($_POST['action']) && $_POST['action'] == 'web_to_car_timeStamp')
-{
-    //Insert query and row response
-    $query = mysqliNonQuery("UPDATE web_to_car
-    SET timeStamp = {$_POST['timeStamp']}
+        yCoord = {$_POST['yCoord']},
+        timeStamp = {$_POST['timeStamp']}
         WHERE carID = {$_POST['carID']}");
 
     $status = "$query : records inserted";
@@ -117,6 +107,42 @@ if (isset($_POST['action']) && $_POST['action'] == 'DeleteUser')
 
     //Pack up
     Done();
+}
+
+
+//////////////////////////////////////////////
+//  Request from car
+//  Get Current data in db and send to car
+//////////////////////////////////////////////
+if (isset($_POST['action']) && $_POST['action'] == 'GrabXYTimeStamp')
+{
+    //Get all users
+    //$carRequest = mysqliQuery("SELECT * from web_to_car where carID like {$_POST['carID']}");
+    $carRequest = mysqliQuery("SELECT * from web_to_car where carID like 1");
+
+    //Get row
+    $row = $carRequest->fetch_assoc();
+
+    //Check if query was good
+    if ($row)
+    {     
+        //Send status back to car if successful
+        $status = "Hello Car {$row['carID']} from webservice.php!";
+
+        //Throw data to low
+        error_log("Car ID: {$row['carID']} X: {$row['xCoord']} Y: {$row['yCoord']} Stamp: {$row['timeStamp']}");
+
+        //Json encode data back to car
+        echo json_encode($row);
+        die();  //in a hole
+    }
+
+    //Bad query
+    else
+    {
+        error_log("POST Query Failed FROM Car {$row['carID']}");
+        $status = "POST Query Failed FROM Car {$row['carID']}";
+    }
 }
 
 Done();
