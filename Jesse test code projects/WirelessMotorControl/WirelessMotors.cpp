@@ -255,15 +255,17 @@ void Main()
 			{
 				Serial.println(httpResponseCode);
 				String payload = http.getString();		//causing crash and reboot ocasionally (try catch no fix)
-				delay(50);
-
+				Serial.println(payload);
 				jason = JSON.parse(payload);
 
-				if (timeStamp != atoi(jason["timeStamp"]))
+				if (timeStamp != atoi(jason["timeStamp"]) && atoi(jason["timeStamp"]) != 0)
 				{
+					Serial.println(atoi(jason["timeStamp"]));
 					xCoord = atoi(jason["xCoord"]);
 					yCoord = atoi(jason["yCoord"]);
 					timeStamp = atoi(jason["timeStamp"]);
+					//Serial.println(xCoord);
+					//Serial.println(yCoord);
 				}
 								
 			}
