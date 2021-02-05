@@ -30,7 +30,7 @@ typedef struct Encoder_Settings {
 	int pin;                             // GPIO pin of the encoder input signal
 	int preScale;                        // prescaler for the capture timer
 	mcpwm_capture_signal_t capSignal;    // the capture signal to use
-	mcpwm_io_signals_t signal;           // specific io signal
+	mcpwm_io_signals_t signal;           // specific io signal/
 	mcpwm_capture_on_edge_t edgeCapture; // which edge detection to use, pos/neg
 };
 

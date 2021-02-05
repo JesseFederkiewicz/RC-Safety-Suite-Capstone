@@ -6,7 +6,6 @@ let lastY = 0;
 let lastTime = 0;
 let xVal = 0;
 let yVal = 0;
-
 class JoystickController
 {
 	// stickID: ID of HTML element (representing joystick) that will be dragged
@@ -83,13 +82,13 @@ class JoystickController
 			// deadzone adjustment
 			const distance2 = (distance < deadzone) ? 0 : maxDistance / (maxDistance - deadzone) * (distance - deadzone);
 		    const xPosition2 = distance2 * Math.cos(angle);
-			const yPosition2 = distance2 * Math.sin(angle);
+			const yPosition2 = -1 * distance2 * Math.sin(angle);
 		    const xPercent = parseFloat((xPosition2 / maxDistance).toFixed(4));
             const yPercent = parseFloat((yPosition2 / maxDistance).toFixed(4));
 
             //Matches up with 'duty' cycle on micro if range is 0-100
-            xVal = parseFloat((xPosition2 / maxDistance * 100)).toFixed(0); 
-		    yVal = parseFloat((yPosition2 / maxDistance * 100)).toFixed(0);
+            xVal = parseFloat((xPosition2 / maxDistance * 100.0)).toFixed(0); 
+		    yVal = parseFloat((yPosition2 / maxDistance * 100.0)).toFixed(0);
 		    
             // self.value = { x: xPercent, y: yPercent };
             self.value = { x: xVal, y: yVal };
@@ -112,7 +111,7 @@ class JoystickController
 			self.active = false;
 			
 			
-			//If lift put back to 0
+			//If lift put back to 0 TODO put
 			xVal = 0;
 			yVal = 0;
 		}
@@ -143,7 +142,7 @@ $(document).ready ( () => {
     }
 
 	loop();
-	let interval = 200;
+	let interval = 50;
 	setInterval(SendData, interval);   
 	setInterval(FetchData, interval * .8);
 });
@@ -194,7 +193,7 @@ function CarSimReq(data, response)
 	$("#XYFeedBackTest").append("<br>Y = ");
 	$("#XYFeedBackTest").append(data['yCoord']);
 	$("#XYFeedBackTest").append("<br>TimeStamp = ");
-	$("#XYFeedBackTest").append(data['timeStamp']);
+	$("#XYFeedBackTest").append(data['timeStamp']);	
 }
 
 //Happens every 250ms send data to webserver
@@ -206,19 +205,25 @@ function SendData()
 
 	data['xCoord'] = xVal;
 	data['yCoord'] = yVal;
-    
+	
             //Date.now() returns number of ms from January 1, 1970, parsed to keep track of 1 minute in ms
     //For unsigned 16bit int (0 - 65,535), and as little wrapping as little as possible
     //If mem space is required can easily be reduced further
     data['timeStamp'] = Date.now() % 60000;     //returns number of ms from January 1, 1970, good for timeout comparison
-    //parsed to last 4 digits for data storage as its essentially acting as a timer
+	//parsed to last 4 digits for data storage as its essentially acting as a timer
 
 	AjaxRequest('./webservice.php', 'POST', data, 'json', HandleStatus, Fail)
+	
 }
 
 function FetchData()
 {
 	let data = {};
-    data['action'] = 'GrabXYTimeStamp';
+	data['action'] = 'GrabXYTimeStamp';
+	
 	AjaxRequest('./webservice.php', 'POST', data, 'json', CarSimReq, Fail);
 }
+
+function sleep(ms){
+	return new Promise( resolver => setTimeout(resolver, ms));
+};

@@ -30,7 +30,9 @@ if (isset($_POST['action']) && $_POST['action'] == 'web_to_car_Data')
     SET xCoord = {$_POST['xCoord']},
         yCoord = {$_POST['yCoord']},
         timeStamp = {$_POST['timeStamp']}
-        WHERE carID = {$_POST['carID']}");
+        WHERE carID = {$_POST['carID']}");    
+
+    $_SESSION['StopAccount'] = 0;
 
     $status = "$query : records inserted";
 }
@@ -129,8 +131,8 @@ if (isset($_POST['action']) && $_POST['action'] == 'GrabXYTimeStamp')
         //Send status back to car if successful
         $status = "Hello Car {$row['carID']} from webservice.php!";
 
-        //Throw data to low
-        error_log("Car ID: {$row['carID']} X: {$row['xCoord']} Y: {$row['yCoord']} Stamp: {$row['timeStamp']}");
+        //Throw data to log
+        //error_log("Car ID: {$row['carID']} X: {$row['xCoord']} Y: {$row['yCoord']} Stamp: {$row['timeStamp']}");
 
         //Json encode data back to car
         echo json_encode($row);
