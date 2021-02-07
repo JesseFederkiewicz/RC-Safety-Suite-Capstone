@@ -243,8 +243,10 @@ void Main()
 	for (;;) {
 		if (WiFi.status() == WL_CONNECTED) {
 
-			if (!http.connected())
-				http.begin(webService);
+			//if (!http.connected())
+			delay(40);
+			http.begin(webService, '0');
+			delay(40);
 
 			http.addHeader("Content-Type", "application/x-www-form-urlencoded");
 			delay(2);
@@ -270,6 +272,10 @@ void Main()
 								
 			}
 
+			//
+			
+			//
+
 			MotorDuty motorData = SimpleSteering(xCoord, yCoord);
 
 			Serial.println(motorData.frontLeftMotorDuty);
@@ -282,6 +288,10 @@ void Main()
 			mcpwm_set_duty(frontRightMotor.pwm.unit, frontRightMotor.pwm.timer, frontRightMotor.pwm.opOut, motorData.frontRightMotorDuty);			
 			mcpwm_set_duty(backLeftMotor.pwm.unit, backLeftMotor.pwm.timer, backLeftMotor.pwm.opOut, motorData.backLeftMotorDuty);
 			mcpwm_set_duty(backRightMotor.pwm.unit, backRightMotor.pwm.timer, backRightMotor.pwm.opOut, motorData.backRightMotorDuty);
+
+			delay(40);
+			http.end();
+			delay(40);
 		}		
 	}
 }
