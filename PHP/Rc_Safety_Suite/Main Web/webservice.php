@@ -22,17 +22,15 @@ function Done()
     die();
 }
 
-//Send XY data into db
+//Send data into db
 if (isset($_POST['action']) && $_POST['action'] == 'web_to_car_Data')
 {
     //Insert query and row response
     $query = mysqliNonQuery("UPDATE web_to_car
-    SET xCoord = {$_POST['xCoord']},
-        yCoord = {$_POST['yCoord']},
+    SET intendedAngle = {$_POST['intendedAngle']},
+        intendedSpeed = {$_POST['intendedSpeed']},
         timeStamp = {$_POST['timeStamp']}
         WHERE carID = {$_POST['carID']}");    
-
-    $_SESSION['StopAccount'] = 0;
 
     $status = "$query : records inserted";
 }
@@ -116,11 +114,11 @@ if (isset($_POST['action']) && $_POST['action'] == 'DeleteUser')
 //  Request from car
 //  Get Current data in db and send to car
 //////////////////////////////////////////////
-if (isset($_POST['action']) && $_POST['action'] == 'GrabXYTimeStamp')
+if (isset($_POST['action']) && $_POST['action'] == 'GrabWebToCar')
 {
     //Get all users
-    //$carRequest = mysqliQuery("SELECT * from web_to_car where carID like {$_POST['carID']}");
-    $carRequest = mysqliQuery("SELECT * from web_to_car where carID like 1");
+    $carRequest = mysqliQuery("SELECT * from web_to_car where carID like {$_POST['carID']}");
+    //$carRequest = mysqliQuery("SELECT intendedAngle, intendedSpeed, timeStamp from web_to_car where carID like 1");
 
     //Get row
     $row = $carRequest->fetch_assoc();
@@ -146,5 +144,37 @@ if (isset($_POST['action']) && $_POST['action'] == 'GrabXYTimeStamp')
         $status = "POST Query Failed FROM Car {$row['carID']}";
     }
 }
+
+if (isset($_GET['action']) && $_GET['action'] == 'GrabWebToCar')
+{
+    //Get all users
+    $carRequest = mysqliQuery("SELECT * from web_to_car where carID like {$_GET['carID']}");
+    //$carRequest = mysqliQuery("SELECT intendedAngle, intendedSpeed, timeStamp from web_to_car where carID like 1");
+
+    //Get row
+    $row = $carRequest->fetch_assoc();
+
+    //Check if query was good
+    if ($row)
+    {     
+        //Send status back to car if successful
+        $status = "Hello Car {$row['carID']} from webservice.php!";
+
+        //Throw data to log
+        //error_log("Car ID: {$row['carID']} X: {$row['xCoord']} Y: {$row['yCoord']} Stamp: {$row['timeStamp']}");
+
+        //Json encode data back to car
+        echo json_encode($row);
+        die();  //in a hole
+    }
+
+    //Bad query
+    else
+    {
+        error_log("POST Query Failed FROM Car {$row['carID']}");
+        $status = "POST Query Failed FROM Car {$row['carID']}";
+    }
+}
+
 
 Done();

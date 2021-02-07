@@ -1,11 +1,10 @@
 // used as guide: -- https://www.cssscript.com/touch-joystick-controller/ 
 
-let carNum = 1; //to be determined from dropdown
-let lastX = 0;
-let lastY = 0;
+//let carNum = 1; //to be determined from dropdown
 let lastTime = 0;
-let xVal = 0;
-let yVal = 0;
+let intendedAngle = 0;
+let speedAsPercent = 0;
+
 class JoystickController
 {
 	// stickID: ID of HTML element (representing joystick) that will be dragged
@@ -86,12 +85,16 @@ class JoystickController
 		    const xPercent = parseFloat((xPosition2 / maxDistance).toFixed(4));
             const yPercent = parseFloat((yPosition2 / maxDistance).toFixed(4));
 
-            //Matches up with 'duty' cycle on micro if range is 0-100
-            xVal = parseFloat((xPosition2 / maxDistance * 100.0)).toFixed(0); 
-		    yVal = parseFloat((yPosition2 / maxDistance * 100.0)).toFixed(0);
+			//console.log("");
+			//console.log(angle);
+
+			//Offset so 0 is forward TODO
+
+			intendedAngle = parseFloat((angle * (180 / Math.PI) + 90).toFixed(0));
+			intendedAngle = intendedAngle > 180 ? intendedAngle - 360 : intendedAngle;
+			speedAsPercent = (distance / maxDistance * 100).toFixed(0);
 		    
-            // self.value = { x: xPercent, y: yPercent };
-            self.value = { x: xVal, y: yVal };
+            self.value = { x: (xPercent * 100).toFixed(0), y: (yPercent * 100).toFixed(0)};
 		  }
 
 		function handleUp(event) 
@@ -111,9 +114,9 @@ class JoystickController
 			self.active = false;
 			
 			
-			//If lift put back to 0 TODO put
-			xVal = 0;
-			yVal = 0;
+			//If lift put back to 0
+			intendedAngle = 0;
+			speedAsPercent = 0;
 		}
 
 		stick.addEventListener('mousedown', handleDown);
@@ -127,7 +130,7 @@ class JoystickController
 
 $(document).ready ( () => {
   
-	let joyStick = new JoystickController("joyStick", 64, 8);
+	let joyStick = new JoystickController("joyStick", document.querySelector("#joyBase").clientWidth / 2, 8);	//joystick now resizes based on how big base image is
 	
 
     function update()
@@ -144,7 +147,7 @@ $(document).ready ( () => {
 	loop();
 	let interval = 50;
 	setInterval(SendData, interval);   
-	setInterval(FetchData, interval * .8);
+	//setInterval(FetchData, interval * .8);
 });
 
 //////////////////////////////////////////////
@@ -168,30 +171,12 @@ function Fail(errorMessage)
     $('#connectionStatus').html("BAD AJAX REQUEST!");
 }
 
-//Dormant as now on fixed time
-function ShouldSendData(data)
-{
-    let shouldRet = false;
-
-    //If XCoord has moved significantly or its been over ~500ms
-    if (data['xCoord'] - lastX > 50 || data['yCoord'] - lastY > 50 || data['timeStamp'] - lastTime > 499)
-        shouldSend = true;
-
-    lastX = data['xCoord'];
-    lastY = data['yCoord'];
-
-    if (data['yCoord'] == 0 && data['xCoord'] == 0)
-        shouldSend = true;
-
-    return  shouldSend;
-}
-
 function CarSimReq(data, response)
 {
-	$("#XYFeedBackTest").html("X = ");
-	$("#XYFeedBackTest").append(data['xCoord']);
-	$("#XYFeedBackTest").append("<br>Y = ");
-	$("#XYFeedBackTest").append(data['yCoord']);
+	$("#XYFeedBackTest").html("Angle = ");
+	$("#XYFeedBackTest").append(data['intendedAngle']);
+	$("#XYFeedBackTest").append("<br>Speed as % = ");
+	$("#XYFeedBackTest").append(data['intendedSpeed']);
 	$("#XYFeedBackTest").append("<br>TimeStamp = ");
 	$("#XYFeedBackTest").append(data['timeStamp']);	
 }
@@ -201,10 +186,9 @@ function SendData()
 {
 	let data = {};
     data['action'] = 'web_to_car_Data';
-    data['carID'] = carNum;              
-
-	data['xCoord'] = xVal;
-	data['yCoord'] = yVal;
+    data['carID'] = 1;              
+	data['intendedAngle'] = intendedAngle;
+	data['intendedSpeed'] = speedAsPercent;
 	
             //Date.now() returns number of ms from January 1, 1970, parsed to keep track of 1 minute in ms
     //For unsigned 16bit int (0 - 65,535), and as little wrapping as little as possible
@@ -219,7 +203,7 @@ function SendData()
 function FetchData()
 {
 	let data = {};
-	data['action'] = 'GrabXYTimeStamp';
+	data['action'] = 'GrabWebToCar';
 	
 	AjaxRequest('./webservice.php', 'POST', data, 'json', CarSimReq, Fail);
 }

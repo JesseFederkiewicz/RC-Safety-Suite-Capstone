@@ -10,7 +10,6 @@
 #include "WiFi.h"
 #include "HTTPClient.h"
 #include "Arduino_JSON.h"
-//#include "esp_wifi.h"
 #include "HardwareSerial.h"
 #include "driver/mcpwm.h"
 #include "esp32-hal.h"
@@ -371,9 +370,9 @@ MotorDuty SimpleSteering(int angle, int speed)
 		motorSetting.backRightMotorDuty = 0;
 	}
 
-	Serial.println("Returning Motor Settings");
 	return motorSetting;
 }
+
 
 void Main()
 {
@@ -528,151 +527,272 @@ void Main()
 	const char* server = "thor.net.nait.ca";
 
 	Serial.begin(115200);
-	Serial.println("Serial Has begun");
+	//Serial.println("Serial Has begun");
 	WiFi.begin(jessessid, jessepassword);
-	int connectCount = 0;
-
-	Serial.print("Wifi Connecting");
 
 	while (WiFi.status() != WL_CONNECTED) {
-		delay(1);
-		//// connect to alternate wifi network
-		//if (++connectCount == 5) {
-		//	WiFi.begin(timssid, timpassword);
-		//	connectCount = 0;
-		//}
-		Serial.print(".");
 	}
 
-	Serial.println("Wifi Has connected");
-	
-	//Serial.println();
 
-	//Serial.print("Connected, IP address: ");
-	//Serial.println(WiFi.localIP());
-
-
-	//HTTPClient http;	
-	//JSONVar jason;
-	
-	//Serial.print("http Connecting");
-	//http.begin(webService);
-	//http.begin("https://thor.net.nait.ca/~jfederki/cmpe2500/Rc_Safety_Suite/Main%20Web/webservice.php?action=GrabWebToCar&carID=1");
-
-	//Serial.println("http begin");
-	//http.begin(webService);
-	//Serial.println("past http begin");
+	unsigned int timeStamp = 1;
+	HTTPClient http;
+	http.begin(webService);
+	http.setReuse(true);
 
 	for (;;) {
-		HTTPClient http;
-		JSONVar jason;
-		int intendedAngle = 0;
-		int intendedSpeedPercent = 0;
-		unsigned int timeStamp = 0;
+		//HTTPClient http;					//http client to interface with webservices
+		JSONVar jason;						//our boy jason to parse the payload
+		int intendedAngle = 0;				//whats the intended angle? grab from db
+		int intendedSpeedPercent = 0;		//intended speed? ie distance from ctr of webpage as percent 
+											//trace if the user has lost connection to the web page
 
-		Serial.println("http begin");
-		http.begin(webService);
-		Serial.println("past http begin");
-
-		Serial.println("Top For");
-		Serial.println("http begin");
+		//Begin webservice call
 		//http.begin(webService);
-		Serial.println("past http begin");
-		if (true)
-		{
-			Serial.println("In For");
-			if (WiFi.status() == WL_CONNECTED) {
-				Serial.println("In connected wifi");
-				//if (!http.connected())
-				//	http.begin(webService);	
-
-				Serial.println("Past connected");
 
 
+		//Also check if connected to the internet
+		if (WiFi.status() == WL_CONNECTED) {
+			String payload;
+			//Add header to http POST
+			{
 				http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+				//http->addHeader("Content-Type", "application/x-www-form-urlencoded");
 
-				Serial.println("Past header");
-
-				int httpResponseCode = -1;
-				//Serial.println();
-				//Serial.println("httpSize");
-				//Serial.println(httpSize);
-				//Serial.println();
 
 				/*httpResponseCode = http.sendRequest("POST", "action=GrabWebToCar&carID=1");*/
-				httpResponseCode = http.POST("action=GrabWebToCar&carID=1");//breaking here
-				//httpResponseCode = http.POST("a=WTC&ID=1");
-				//httpResponseCode = http.GET();
-				
-				Serial.println("Past POST");
-
-				//Serial.println(httpResponseCode);
-				if (httpResponseCode > 0)
-				{
-					Serial.println("Before GetString");
-					String payload = http.getString();		
-					Serial.println("After GetString");
-					//Serial.println();
-					//Serial.println(payload);
-					//Serial.println();
-					jason = JSON.parse(payload);
-					Serial.println("After JSON parse");
-
-					if (timeStamp != atoi(jason["timeStamp"]) && atoi(jason["timeStamp"]) != 0 || true)
-					{
-						Serial.println("Before var assignment");
-						//Serial.println(atoi(jason["timeStamp"]));
-						intendedAngle = atoi(jason["intendedAngle"]);
-						intendedSpeedPercent = atoi(jason["intendedSpeed"]);
-						timeStamp = atoi(jason["timeStamp"]);
-						Serial.println("After var assignment");
-						//Serial.println(intendedAngle);
-						//Serial.println(intendedSpeedPercent);
-					}				
-				}
-
-				MotorDuty motorData = SimpleSteering(intendedAngle, intendedSpeedPercent);
-
-				Serial.println("motorData returned");
-
-				//Serial.println(motorData.frontLeftMotorDuty);
-				//Serial.println(motorData.frontRightMotorDuty);
-				//Serial.println(motorData.backLeftMotorDuty);
-				//Serial.println(motorData.backRightMotorDuty);
-				//Serial.println();
-
-				mcpwm_set_duty(frontLeftMotor.pwm.unit, frontLeftMotor.pwm.timer, frontLeftMotor.pwm.opOut, motorData.frontLeftMotorDuty);
-				mcpwm_set_duty(frontRightMotor.pwm.unit, frontRightMotor.pwm.timer, frontRightMotor.pwm.opOut, motorData.frontRightMotorDuty);
-				mcpwm_set_duty(backLeftMotor.pwm.unit, backLeftMotor.pwm.timer, backLeftMotor.pwm.opOut, motorData.backLeftMotorDuty);
-				mcpwm_set_duty(backRightMotor.pwm.unit, backRightMotor.pwm.timer, backRightMotor.pwm.opOut, motorData.backRightMotorDuty);
-
-				Serial.println("mcpwm setduty complete");
-
-				/*http.end();
-				delay(2);*/
+				int httpResponseCode = http.POST("action=GrabWebToCar&carID=1");
+				//httpResponseCode = http.GET();	//requires a different url in .begin (webService?action=GrabWebToCar&carID=1) // support added in webservices.php
+				payload = http.getString();
+				jason = JSON.parse(payload);
 			}
+
+			//Get data if timestamp has changed
+			if (timeStamp != atoi(jason["timeStamp"]) && atoi(jason["timeStamp"]) != 0)
+			{
+				intendedAngle = atoi(jason["intendedAngle"]);
+				intendedSpeedPercent = atoi(jason["intendedSpeed"]);
+				timeStamp = atoi(jason["timeStamp"]);
+
+				//likely want to count missed pings here
+			}
+			
+
+			//Get motor pwm data
+			MotorDuty motorData = SimpleSteering(intendedAngle, intendedSpeedPercent);
+
+			//Set motor duty
+			mcpwm_set_duty(frontLeftMotor.pwm.unit, frontLeftMotor.pwm.timer, frontLeftMotor.pwm.opOut, motorData.frontLeftMotorDuty);
+			mcpwm_set_duty(frontRightMotor.pwm.unit, frontRightMotor.pwm.timer, frontRightMotor.pwm.opOut, motorData.frontRightMotorDuty);
+			mcpwm_set_duty(backLeftMotor.pwm.unit, backLeftMotor.pwm.timer, backLeftMotor.pwm.opOut, motorData.backLeftMotorDuty);
+			mcpwm_set_duty(backRightMotor.pwm.unit, backRightMotor.pwm.timer, backRightMotor.pwm.opOut, motorData.backRightMotorDuty);
 		}
+
+
 		else
 		{
-			Serial.println("http not connected");
+			WiFi.begin(jessessid, jessepassword);
+			while (WiFi.status() != WL_CONNECTED) {
+			}
 		}
-		//Checkout
-		//http.writeToStream();
-		//http.end();
-		
-		//Serial.println("Before http end");
-		//http.end();
-		//Serial.println("After http end");
 
-		//else
+		//http.end();
+	}
+
+	
+	/*
+		Program pulls much more often if you dont .begin and .end in for loop providing valuable response times from user input
+		Played around with pointer
+	*/
+
+	//HTTPClient http;					//http client to interface with webservices
+
+	//////http->begin(webService);
+	//http.begin(webService);
+	//http.setReuse(true);
+
+	//unsigned int timeStamp = 1;
+
+	//
+	//for (;;) {
+	//	HTTPClient http;					//http client to interface with webservices
+	//	JSONVar jason;						//our boy jason to parse the payload
+	//	int intendedAngle = 0;				//whats the intended angle? grab from db
+	//	int intendedSpeedPercent = 0;		//intended speed? ie distance from ctr of webpage as percent 
+	//										//trace if the user has lost connection to the web page
+
+	//	//Begin webservice call
+	//	http.begin(webService);
+
+
+	//	//Also check if connected to the internet
+	//	if (WiFi.status() == WL_CONNECTED) {
+
+	//		//Add header to http POST
+	//		http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+	//		//http->addHeader("Content-Type", "application/x-www-form-urlencoded");
+
+
+	//		/*httpResponseCode = http.sendRequest("POST", "action=GrabWebToCar&carID=1");*/
+	//		int httpResponseCode = http.POST("action=GrabWebToCar&carID=1");
+	//		//httpResponseCode = http.GET();	//requires a different url in .begin (webService?action=GrabWebToCar&carID=1) // support added in webservices.php
+
+	//		//If good call
+	//		if (httpResponseCode > 0)
+	//		{
+	//			//Load response data
+	//			String payload = http.getString();
+	//			//String payload = http->getString();
+
+	//			//Serial.println("Headers");
+	//			//Serial.println(headers);
+
+	//			//Parse response into our boy jason
+	//			jason = JSON.parse(payload);
+
+	//			//Get data if timestamp has changed
+	//			if (timeStamp != atoi(jason["timeStamp"]) && atoi(jason["timeStamp"]) != 0)
+	//			{
+	//				intendedAngle = atoi(jason["intendedAngle"]);
+	//				intendedSpeedPercent = atoi(jason["intendedSpeed"]);
+	//				timeStamp = atoi(jason["timeStamp"]);
+
+	//				//likely want to count missed pings here
+	//			}
+	//		}
+
+	//		//Get motor pwm data
+	//		MotorDuty motorData = SimpleSteering(intendedAngle, intendedSpeedPercent);
+
+	//		//Set motor duty
+	//		mcpwm_set_duty(frontLeftMotor.pwm.unit, frontLeftMotor.pwm.timer, frontLeftMotor.pwm.opOut, motorData.frontLeftMotorDuty);
+	//		mcpwm_set_duty(frontRightMotor.pwm.unit, frontRightMotor.pwm.timer, frontRightMotor.pwm.opOut, motorData.frontRightMotorDuty);
+	//		mcpwm_set_duty(backLeftMotor.pwm.unit, backLeftMotor.pwm.timer, backLeftMotor.pwm.opOut, motorData.backLeftMotorDuty);
+	//		mcpwm_set_duty(backRightMotor.pwm.unit, backRightMotor.pwm.timer, backRightMotor.pwm.opOut, motorData.backRightMotorDuty);
+	//	}
+
+
+	//	else
+	//	{
+	//		WiFi.begin(jessessid, jessepassword);
+	//		while (WiFi.status() != WL_CONNECTED) {
+	//		}
+	//	}
+
+	//	//http.end();
+	//}
+
+
+	//HTTPClient http;					//http client to interface with webservices
+	//
+	////http->begin(webService);
+	//http.begin(webService);
+	//
+	//
+	//
+
+	//for (;;) {
+	//	//HTTPClient http;					//http client to interface with webservices
+	//	JSONVar jason;						//our boy jason to parse the payload
+	//	int intendedAngle = 0;				//whats the intended angle? grab from db
+	//	int intendedSpeedPercent = 0;		//intended speed? ie distance from ctr of webpage as percent 
+	//	unsigned int timeStamp = 0;			//trace if the user has lost connection to the web page
+
+	//	//Begin webservice call
+	//	//http.begin(webService);
+
+
+	//	//Also check if connected to the internet
+	//	if (WiFi.status() == WL_CONNECTED) {
+
+	//		//Add header to http POST
+	//		http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+	//		//http->addHeader("Content-Type", "application/x-www-form-urlencoded");
+
+	//		/*httpResponseCode = http.sendRequest("POST", "action=GrabWebToCar&carID=1");*/
+	//		int httpResponseCode = http.POST("action=GrabWebToCar&carID=1");
+	//		//int httpResponseCode = http->POST("action=GrabWebToCar&carID=1");
+	//		//httpResponseCode = http.GET();	//requires a different url in .begin (webService?action=GrabWebToCar&carID=1) // support added in webservices.php
+	//			
+	//		//If good call
+	//		if (httpResponseCode > 0)
+	//		{
+	//			//Load response data
+	//			String payload = http.getString();		
+	//			//String payload = http->getString();
+
+	//			//Parse response into our boy jason
+	//			jason = JSON.parse(payload);
+
+	//			//Get data if timestamp has changed
+	//			if (timeStamp != atoi(jason["timeStamp"]) && atoi(jason["timeStamp"]) != 0)
+	//			{
+	//				intendedAngle = atoi(jason["intendedAngle"]);
+	//				intendedSpeedPercent = atoi(jason["intendedSpeed"]);
+	//				timeStamp = atoi(jason["timeStamp"]);
+
+	//				//likely want to count missed pings here
+	//			}				
+	//		}
+
+	//		//Get motor pwm data
+	//		MotorDuty motorData = SimpleSteering(intendedAngle, intendedSpeedPercent);
+
+	//		//Set motor duty
+	//		mcpwm_set_duty(frontLeftMotor.pwm.unit, frontLeftMotor.pwm.timer, frontLeftMotor.pwm.opOut, motorData.frontLeftMotorDuty);
+	//		mcpwm_set_duty(frontRightMotor.pwm.unit, frontRightMotor.pwm.timer, frontRightMotor.pwm.opOut, motorData.frontRightMotorDuty);
+	//		mcpwm_set_duty(backLeftMotor.pwm.unit, backLeftMotor.pwm.timer, backLeftMotor.pwm.opOut, motorData.backLeftMotorDuty);
+	//		mcpwm_set_duty(backRightMotor.pwm.unit, backRightMotor.pwm.timer, backRightMotor.pwm.opOut, motorData.backRightMotorDuty);
+	//	}
+	//	
+	//	
+	//	else
+	//	{
+	//		WiFi.begin(jessessid, jessepassword);
+	//		while (WiFi.status() != WL_CONNECTED) {
+	//		}
+	//	}
+
+
+		//*
+		//	Too much heap space consumed or too slow, trying a different method with a pointer stream so we can deallocate heap space easily
+		//*/
+
+		//HTTPClient http;
+		//http.setReuse(true);
+		//http.begin(webService);
+		//byte* buff = (byte*)malloc(1024); // power of 2?
+		//int len = 1;
+
+		//for (;;)
 		//{
-		//	while (WiFi.status() != WL_CONNECTED) {
-		//		//Serial.println("reconnecting wifi");
-		//		WiFi.begin(timssid, timpassword);
-		//		delay(3000);
+		//	WiFiClient* data = http.getStreamPtr();
+
+		//			//Also check if connected to the internet
+		//	if (WiFi.status() == WL_CONNECTED) {
+
+		//		//Add header to http POST
+		//		http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+		//		int httpResponseCode = http.sendRequest("POST", "action=GrabWebToCar&carID=1");
+
+		//		if (httpResponseCode > 0)
+		//		{
+		//			/*while (http.connected() && (data->next != NULL))*/
+		//			while (http.connected() && (len > 0 || len == - 1))
+		//			{
+		//				size_t size = data->available();
+
+		//				if (size)
+		//				{
+		//					int Char = data->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
+		//					Serial.write(buff, Char);
+
+		//					if (len - Char >= 0)
+		//						len -= Char;
+		//				}
+		//			}
+		//		}
 		//	}
 		//}
-
 
 		//mcpwm_set_duty(frontLeftMotor.pwm.unit, frontLeftMotor.pwm.timer, frontLeftMotor.pwm.opOut, 40);
 		//mcpwm_set_duty(frontRightMotor.pwm.unit, frontRightMotor.pwm.timer, frontRightMotor.pwm.opOut, 40);
@@ -714,8 +834,7 @@ void Main()
 		//	intFlag = false;
 		//	portEXIT_CRITICAL(&timerMux);
 		//}
-		Serial.println("Bottom For");
-	}
+	//}
 }
 
 //timer ISR, trips a flag to use in main
