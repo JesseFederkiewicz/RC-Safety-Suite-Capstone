@@ -4,6 +4,7 @@
 let lastTime = 0;
 let intendedAngle = 0;
 let speedAsPercent = 0;
+let joystick;
 
 class JoystickController
 {
@@ -129,26 +130,130 @@ class JoystickController
 }
 
 $(document).ready ( () => {
-  
-	let joyStick = new JoystickController("joyStick", document.querySelector("#joyBase").clientWidth / 2, 8);	//joystick now resizes based on how big base image is
+
+	//This all goes after button click that selects car
+	joyStick = new JoystickController("joyStick", document.querySelector("#joyBase").clientWidth / 2, 8);	//joystick now resizes based on how big base image is
+
+	$('#carControl').hide();
+
+
+	// //Make user select car
+	// let selCar =  $('#selectCarNumber');
+	// $(selCar).html("");
+
+	// let select = document.createElement('select');
+	// $(select).prop({"name" : "carSelect"});
 	
+	//fetsh how many cars in database
+	GetCarCount();
 
-    function update()
-    {
-        document.getElementById("status1").innerText = "Joystick: " + JSON.stringify(joyStick.value);
-    }
 
-    function loop()
-    {
-        requestAnimationFrame(loop);
-		update();
-    }
+	//<input type = "button" name = "selCarBtn" value = "Lets Control This thing!" id = selCarBtnID>
+	//end of selection...
 
-	loop();
-	let interval = 50;
-	setInterval(SendData, interval);   
-	//setInterval(FetchData, interval * .8);
+	//After selection display controls
+
+	// let timsInternetInterval = 200;
+	// let jesseInternetInterval = 50;
+	// let interval = timsInternetInterval;
+	// setInterval(SendData, interval);   
+	// //setInterval(FetchData, interval * .8);
+
 });
+
+function update()
+{
+	document.getElementById("status1").innerText = "Joystick: " + JSON.stringify(joyStick.value);
+}
+
+function loop()
+{
+	requestAnimationFrame(loop);
+	update();
+}
+
+function GetCarCount()
+{
+	let data = {};
+	data['action'] = "GetCarCount";
+	AjaxRequest('./webservice.php', 'POST', data, 'json', SetUpItems, Fail)
+}
+
+function SetUpItems (data, response)
+{
+	$('#selectCarNumber').html("");
+	$('#selectCarBtn').html("");
+	$('#addCarBtnDIV').html("");
+
+	//Make user select car
+	let selCar =  $('#selectCarNumber');
+	$(selCar).html("");
+
+	let select = document.createElement('select');
+	$(select).prop({"name" : "carSelect", "id" : "whichCarSel"});
+
+	for ($i = 1; $i <= data['data']; $i++)
+	{
+		let option = document.createElement('option');
+		$(option).prop({"id" : "option" + $i, "value" : $i, "innerHTML" : "Car " + $i});
+		$(select).append(option);
+	}
+
+
+	$(selCar).append(select);
+
+	//set up button
+	let selBtnDiv = $('#selectCarBtn');
+	let selCarBtn = document.createElement("input");
+	$(selCarBtn).prop({"type" : "button", "id" : "selCarBtn", "value" : "Control Car #" + $(select).val()});
+	$(selBtnDiv).append(selCarBtn);
+
+		
+	//Add option to add another car...
+
+	let addCarBtnDiv = $('#addCarBtnDIV');
+	let addCarBtn = document.createElement("input");
+	$(addCarBtn).prop({"type" : "button", "id" : "addCarBtn", "value" : "Add Car #" + (data['data'] + 1)});
+	$(addCarBtnDiv).append(addCarBtn);
+
+	//Add select changed event handler to update button
+	$(select).change( () => {
+		$(selCarBtn).prop("value", "Control Car #" + $(select).val());
+	});
+
+	$(addCarBtn).click ( () => {
+		let sendData = {};
+		sendData['action'] = "addNewCar";
+		sendData['carID'] = data['data'] + 1;
+
+		AjaxRequest('./webservice.php', 'POST', sendData, 'json', GetCarCount, Fail)
+	});
+
+	$(selCarBtn).click ( () => {
+
+		let data = {};
+		data['action'] = "addNewCar";
+		data['carID'] = data['data'];
+
+		AjaxRequest('./webservice.php', 'POST', data, 'json', DisplayControls, Fail)
+
+
+		let timsInternetInterval = 200;
+		let jesseInternetInterval = 50;
+		let interval = timsInternetInterval;
+		setInterval(SendData, interval);
+		loop();
+	
+	});
+}
+
+function DisplayControls(data, response)
+{
+	$('#carControlBanner').html("Controlling car #" + $('#whichCarSel').val());
+
+	$('#chooseCar').hide();
+	$('#carControl').show();	
+}
 
 //////////////////////////////////////////////
 //  function HandleStatus (data, response)
@@ -186,7 +291,7 @@ function SendData()
 {
 	let data = {};
     data['action'] = 'web_to_car_Data';
-    data['carID'] = 1;              
+    data['carID'] = $('#whichCarSel').val();              
 	data['intendedAngle'] = intendedAngle;
 	data['intendedSpeed'] = speedAsPercent;
 	
@@ -204,7 +309,8 @@ function FetchData()
 {
 	let data = {};
 	data['action'] = 'GrabWebToCar';
-	
+	data['carID'] = 1;
+
 	AjaxRequest('./webservice.php', 'POST', data, 'json', CarSimReq, Fail);
 }
 

@@ -533,6 +533,74 @@ void Main()
 	while (WiFi.status() != WL_CONNECTED) {
 	}
 
+	//unsigned int timeStamp = 1;
+	//HTTPClient http;
+	//http.begin(webService);
+	//http.setReuse(true);
+
+	//for (;;) {
+	//	WiFiClient* dataStream;
+	//	//HTTPClient http;					//http client to interface with webservices
+	//	int intendedAngle = 0;				//whats the intended angle? grab from db
+	//	int intendedSpeedPercent = 0;		//intended speed? ie distance from ctr of webpage as percent 
+	//										//trace if the user has lost connection to the web page
+
+	//	//Begin webservice call
+	//	//http.begin(webService);
+
+
+	//	//Also check if connected to the internet//	
+	//	if (WiFi.status() == WL_CONNECTED) {
+
+	//		//Add header to http POST
+	//		http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+	//		//http->addHeader("Content-Type", "application/x-www-form-urlencoded");
+
+	//		/*httpResponseCode = http.sendRequest("POST", "action=GrabWebToCar&carID=1");*/
+	//		int httpResponseCode = http.POST("action=GrabWebToCar&carID=1");
+	//		//httpResponseCode = http.GET();	//requires a different url in .begin (webService?action=GrabWebToCar&carID=1) // support added in webservices.php
+
+	//		//If good call
+	//		if (httpResponseCode > 0)
+	//		{
+	//			while (dataStream->next != null)
+	//			{
+	//				dataStream = http.getStreamPtr();
+	//				Serial.println(*dataStream);
+	//				dataStream = dataStream->next;
+	//			}
+
+	//			//Load response data
+	//			String payload = http.getString();
+	//			//String payload = http->getString();
+	//			http.getStreamPtr();
+
+	//			//Parse response into our boy jason
+	//			JSONVar jason = JSON.parse(payload);
+
+	//			//Get data if timestamp has changed
+	//			if (timeStamp != atoi(jason["timeStamp"]) && atoi(jason["timeStamp"]) != 0)
+	//			{
+	//				intendedAngle = atoi(jason["intendedAngle"]);
+	//				intendedSpeedPercent = atoi(jason["intendedSpeed"]);
+	//				timeStamp = atoi(jason["timeStamp"]);
+
+	//				//likely want to count missed pings here
+	//			}
+	//		}
+	//	}
+
+
+	//	else
+	//	{
+	//		WiFi.begin(jessessid, jessepassword);
+	//		while (WiFi.status() != WL_CONNECTED) {
+	//		}
+	//	}
+
+	//	//http.end();
+	//}
+
 
 	unsigned int timeStamp = 1;
 	HTTPClient http;
@@ -566,7 +634,7 @@ void Main()
 				//Load response data
 				String payload = http.getString();
 				//String payload = http->getString();
-
+				http.getStreamPtr();
 
 				//Parse response into our boy jason
 				JSONVar jason = JSON.parse(payload);
