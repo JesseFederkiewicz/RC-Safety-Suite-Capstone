@@ -541,7 +541,6 @@ void Main()
 
 	for (;;) {
 		//HTTPClient http;					//http client to interface with webservices
-		JSONVar jason;						//our boy jason to parse the payload
 		int intendedAngle = 0;				//whats the intended angle? grab from db
 		int intendedSpeedPercent = 0;		//intended speed? ie distance from ctr of webpage as percent 
 											//trace if the user has lost connection to the web page
@@ -550,41 +549,38 @@ void Main()
 		//http.begin(webService);
 
 
-		//Also check if connected to the internet
+		//Also check if connected to the internet//	
 		if (WiFi.status() == WL_CONNECTED) {
-			String payload;
+
 			//Add header to http POST
+			http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+			//http->addHeader("Content-Type", "application/x-www-form-urlencoded");
+
+			/*httpResponseCode = http.sendRequest("POST", "action=GrabWebToCar&carID=1");*/
+			int httpResponseCode = http.POST("action=GrabWebToCar&carID=1");
+			//httpResponseCode = http.GET();	//requires a different url in .begin (webService?action=GrabWebToCar&carID=1) // support added in webservices.php
+
+			//If good call
+			if (httpResponseCode > 0)
 			{
-				http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-				//http->addHeader("Content-Type", "application/x-www-form-urlencoded");
+				//Load response data
+				String payload = http.getString();
+				//String payload = http->getString();
 
 
-				/*httpResponseCode = http.sendRequest("POST", "action=GrabWebToCar&carID=1");*/
-				int httpResponseCode = http.POST("action=GrabWebToCar&carID=1");
-				//httpResponseCode = http.GET();	//requires a different url in .begin (webService?action=GrabWebToCar&carID=1) // support added in webservices.php
-				payload = http.getString();
-				jason = JSON.parse(payload);
+				//Parse response into our boy jason
+				JSONVar jason = JSON.parse(payload);
+
+				//Get data if timestamp has changed
+				if (timeStamp != atoi(jason["timeStamp"]) && atoi(jason["timeStamp"]) != 0)
+				{
+					intendedAngle = atoi(jason["intendedAngle"]);
+					intendedSpeedPercent = atoi(jason["intendedSpeed"]);
+					timeStamp = atoi(jason["timeStamp"]);
+
+					//likely want to count missed pings here
+				}
 			}
-
-			//Get data if timestamp has changed
-			if (timeStamp != atoi(jason["timeStamp"]) && atoi(jason["timeStamp"]) != 0)
-			{
-				intendedAngle = atoi(jason["intendedAngle"]);
-				intendedSpeedPercent = atoi(jason["intendedSpeed"]);
-				timeStamp = atoi(jason["timeStamp"]);
-
-				//likely want to count missed pings here
-			}
-			
-
-			//Get motor pwm data
-			MotorDuty motorData = SimpleSteering(intendedAngle, intendedSpeedPercent);
-
-			//Set motor duty
-			mcpwm_set_duty(frontLeftMotor.pwm.unit, frontLeftMotor.pwm.timer, frontLeftMotor.pwm.opOut, motorData.frontLeftMotorDuty);
-			mcpwm_set_duty(frontRightMotor.pwm.unit, frontRightMotor.pwm.timer, frontRightMotor.pwm.opOut, motorData.frontRightMotorDuty);
-			mcpwm_set_duty(backLeftMotor.pwm.unit, backLeftMotor.pwm.timer, backLeftMotor.pwm.opOut, motorData.backLeftMotorDuty);
-			mcpwm_set_duty(backRightMotor.pwm.unit, backRightMotor.pwm.timer, backRightMotor.pwm.opOut, motorData.backRightMotorDuty);
 		}
 
 
