@@ -3,12 +3,13 @@
 // Author:      Tim Hachey
 // Description: now that we have wifi/database communication, 
 //				lets put it together and control the motors from the web!
+//
+//				Lots of debugging, fix was heap space shown in this file
 ///////////////////////////////////////////////////////////////////////////////////////
 #include "WirelessMotors.h"
 #include "WiFi.h"
 #include "HTTPClient.h"
 #include "Arduino_JSON.h"
-#include "esp_wifi.h"
 #include "HardwareSerial.h"
 #include "driver/mcpwm.h"
 #include "esp32-hal.h"
@@ -16,21 +17,14 @@
 #include "driver/timer.h"
 #include "arduino.h"
 #include "driver/pcnt.h"
+#include <WiFi.h>
 
 //// timer interrupt stuff
-//volatile bool intFlag = false; // flag for use in main for actual code to run every interrupt interval
-//portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED; // used for syncing main and isr, ignore this red squiggle, still works
+static volatile bool intFlag = false; // flag for use in main for actual code to run every interrupt interval
+portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED; // used for syncing main and isr, ignore this red squiggle, still works
 
 MotorDirection _currentLeftDirection = Forward;
 MotorDirection _currentRightDirection = Reverse;
-
-//// timer ISR, trips a flag to use in main
-//void IRAM_ATTR TimerInt()
-//{
-//	portENTER_CRITICAL_ISR(&timerMux);
-//	intFlag = true;
-//	portEXIT_CRITICAL_ISR(&timerMux);
-//}
 
 // custom structs to hold several emuns that are needed for configs/inits/setting duty:
 
@@ -152,20 +146,29 @@ void PCNTSetup(Motor_Settings m1, Motor_Settings m2, Motor_Settings m3, Motor_Se
 class MotorDuty
 {
 public:
-	int frontLeftMotorDuty;
-	int frontRightMotorDuty;
-	int backLeftMotorDuty;
-	int backRightMotorDuty;
+	float frontLeftMotorDuty;
+	float frontRightMotorDuty;
+	float backLeftMotorDuty;
+	float backRightMotorDuty;
 };
 
-MotorDuty SimpleSteering(int angle, int speed)
+MotorDuty SimpleSteering(int angle, int speedIn)
 {
+	// since first 40% of duty cycle doesnt turn motors,
+	// convert % speed to range of 40-100 for more precise control
+	// out = ((60/100) * in) + 40
+
+	float speed = (0.6 * speedIn ) + 40.0;
+
 	MotorDuty motorSetting;
-	Serial.println("Into MotorDuty");
-	Serial.print("angle");
-	Serial.println(angle);
-	Serial.print("speed");
-	Serial.println(speed);
+	//Serial.println("Into MotorDuty");
+	//Serial.print("speed in ");
+	//Serial.println(speedIn);
+	//Serial.print("angle");
+	//Serial.println(angle);
+	//Serial.print("speed");
+	//Serial.println(speed);
+
 	//Go forward
 	if (angle > -10 && angle < 10)
 	{
@@ -210,126 +213,6 @@ MotorDuty SimpleSteering(int angle, int speed)
 		motorSetting.backRightMotorDuty = speed;
 	}
 
-	////Else stop
-	//else
-	//{
-	//	//gpio_set_level(GPIO_NUM_4, !gpio_get_level(GPIO_NUM_4));
-	//	//gpio_set_level(GPIO_NUM_4, !gpio_get_level(GPIO_NUM_21));
-	//	motorSetting.frontLeftMotorDuty = 0;
-	//	motorSetting.frontRightMotorDuty = 0;
-	//	motorSetting.backLeftMotorDuty = 0;
-	//	motorSetting.backRightMotorDuty = 0;
-	//}
-
-
-	//if (angle < 90 && angle > -90)
-	//{
-	//	//gpio_set_level(GPIO_NUM_4, Forward);//left motor	//0 forward 1 back
-	//	gpio_set_level(GPIO_NUM_21, Forward);//right motor
-	//	motorSetting.frontLeftMotorDuty = speed;
-	//	motorSetting.frontRightMotorDuty = speed;
-	//	motorSetting.backLeftMotorDuty = speed;
-	//	motorSetting.backRightMotorDuty = speed;
-	//}
-
-	////Go right forward
-	//if (angle < 90 && angle >= 0)
-	//{
-	//	//gpio_set_level(GPIO_NUM_4, Forward);//left motor	//0 forward 1 back
-	//	gpio_set_level(GPIO_NUM_21, Forward);//right motor
-	//	motorSetting.frontLeftMotorDuty = speed;
-	//	motorSetting.frontRightMotorDuty = speed - angle / 1.8;
-	//	motorSetting.backLeftMotorDuty = speed;
-	//	motorSetting.backRightMotorDuty = speed - angle / 1.8;
-	//}
-
-	////Go left forward
-	//else if (angle < 0 && angle > 0)
-	//{
-	//	//gpio_set_level(GPIO_NUM_4, Forward);//left motor	//0 forward 1 back
-	//	gpio_set_level(GPIO_NUM_21, Forward);//right motor
-	//	motorSetting.frontLeftMotorDuty = speed - angle / 1.8;
-	//	motorSetting.frontRightMotorDuty = speed;
-	//	motorSetting.backLeftMotorDuty = speed - angle / 1.8;
-	//	motorSetting.backRightMotorDuty = speed;
-	//}
-
-	//else if (angle < -90 && angle > 90)
-	//{
-	//	//gpio_set_level(GPIO_NUM_4, Reverse);//left motor	//0 forward 1 back
-	//	gpio_set_level(GPIO_NUM_21, Reverse);//right motor
-	//	motorSetting.frontLeftMotorDuty = speed;
-	//	motorSetting.frontRightMotorDuty = speed;
-	//	motorSetting.backLeftMotorDuty = speed;
-	//	motorSetting.backRightMotorDuty = speed;
-	//}
-
-	////Go back right
-	//else if (angle > 90 && angle <= 180)
-	//{
-	//	//gpio_set_level(GPIO_NUM_4, Reverse);//left motor	//0 forward 1 back
-	//	gpio_set_level(GPIO_NUM_21, Reverse);//right motor
-	//	motorSetting.frontLeftMotorDuty = speed;
-	//	motorSetting.frontRightMotorDuty = speed;// -angle / 1.8;
-	//	motorSetting.backLeftMotorDuty = speed;
-	//	motorSetting.backRightMotorDuty = speed;// -angle / 1.8;
-	//}
-
-	////Go back left
-	//else if (angle < -90 && angle > -180)
-	//{
-	//	//gpio_set_level(GPIO_NUM_4, Reverse);//left motor	//0 forward 1 back
-	//	gpio_set_level(GPIO_NUM_21, Reverse);//right motor
-	//	motorSetting.frontLeftMotorDuty = speed;// -angle / 1.8;
-	//	motorSetting.frontRightMotorDuty = speed;
-	//	motorSetting.backLeftMotorDuty = speed;// -angle / 1.8;
-	//	motorSetting.backRightMotorDuty = speed;
-	//}
-
-	////If straight forward
-	//else if (angle == 0)
-	//{
-	//	//gpio_set_level(GPIO_NUM_4, Forward);//left motor	//0 forward 1 back
-	//	gpio_set_level(GPIO_NUM_21, Forward);//right motor
-	//	motorSetting.frontLeftMotorDuty = speed;
-	//	motorSetting.frontRightMotorDuty = speed;
-	//	motorSetting.backLeftMotorDuty = speed;
-	//	motorSetting.backRightMotorDuty = speed;
-	//}
-
-	////Burnout right if straight right
-	//else if (angle == 90)
-	//{
-	//	//gpio_set_level(GPIO_NUM_4, Forward);//left motor	//0 forward 1 back
-	//	gpio_set_level(GPIO_NUM_21, Reverse);//right motor
-	//	motorSetting.frontLeftMotorDuty = speed;
-	//	motorSetting.frontRightMotorDuty = speed;
-	//	motorSetting.backLeftMotorDuty = speed;
-	//	motorSetting.backRightMotorDuty = speed;
-	//}
-
-	////If straight back
-	//else if (angle == -180)
-	//{
-	//	//gpio_set_level(GPIO_NUM_4, Forward);//left motor	//0 forward 1 back
-	//	gpio_set_level(GPIO_NUM_21, Forward);//right motor
-	//	motorSetting.frontLeftMotorDuty = speed;
-	//	motorSetting.frontRightMotorDuty = speed;
-	//	motorSetting.backLeftMotorDuty = speed;
-	//	motorSetting.backRightMotorDuty = speed;
-	//}
-
-	////Burnout left if straight left
-	//else if (angle == -90)
-	//{
-	//	//gpio_set_level(GPIO_NUM_4, Reverse);//left motor	//0 forward 1 back
-	//	gpio_set_level(GPIO_NUM_21, Forward);//right motor
-	//	motorSetting.frontLeftMotorDuty = speed;
-	//	motorSetting.frontRightMotorDuty = speed;
-	//	motorSetting.backLeftMotorDuty = speed;
-	//	motorSetting.backRightMotorDuty = speed;
-	//}
-
 	//Unknown state condition, stop it
 	else
 	{
@@ -341,31 +224,8 @@ MotorDuty SimpleSteering(int angle, int speed)
 		motorSetting.backRightMotorDuty = 0;
 	}
 
-
-	////Burnout right if straight right
-	//if (angle > 80 && angle < 100)
-	//{
-	//	//gpio_set_level(GPIO_NUM_4, Forward);//left motor	//0 forward 1 back
-	//	gpio_set_level(GPIO_NUM_21, Reverse);//right motor
-	//	motorSetting.frontLeftMotorDuty = speed;
-	//	motorSetting.frontRightMotorDuty = speed;
-	//	motorSetting.backLeftMotorDuty = speed;
-	//	motorSetting.backRightMotorDuty = speed;
-	//}
-
-	////Burnout left if straight left
-	//if (angle > -80 && angle < -100)
-	//{
-	//	//gpio_set_level(GPIO_NUM_4, Reverse);//left motor	//0 forward 1 back
-	//	gpio_set_level(GPIO_NUM_21, Forward);//right motor
-	//	motorSetting.frontLeftMotorDuty = speed;
-	//	motorSetting.frontRightMotorDuty = speed;
-	//	motorSetting.backLeftMotorDuty = speed;
-	//	motorSetting.backRightMotorDuty = speed;
-	//}
-
 	//if stop
-	if (speed == 0)	//add || timeout to show disconnect
+	if (speed == 0)
 	{
 		//gpio_set_level(GPIO_NUM_4, !gpio_get_level(GPIO_NUM_4));
 		//gpio_set_level(GPIO_NUM_4, !gpio_get_level(GPIO_NUM_21));
@@ -377,6 +237,7 @@ MotorDuty SimpleSteering(int angle, int speed)
 
 	return motorSetting;
 }
+
 
 void Main()
 {
@@ -390,7 +251,7 @@ void Main()
 	frontLeftMotor.encoder.pin = 34;                      // encoder input on pin 34
 	frontLeftMotor.encoder.edgeCapture = MCPWM_POS_EDGE;  // capture positive edges
 	frontLeftMotor.encoder.gpioNum = GPIO_NUM_34;        // gpio num should match pin num
-	
+
 	// motor two configs
 	Motor_Settings frontRightMotor;
 	frontRightMotor.pwm.unit = frontLeftMotor.pwm.unit;    // frontRightMotor shares unit with frontLeftMotor
@@ -453,7 +314,7 @@ void Main()
 	gpio_config_t dirConfigLeft;
 	dirConfigLeft.intr_type = GPIO_INTR_DISABLE;
 	dirConfigLeft.mode = GPIO_MODE_OUTPUT;
-	dirConfigLeft.pin_bit_mask = 0b1000000000000000000000 ;// bit #21 for pin 21 
+	dirConfigLeft.pin_bit_mask = 0b1000000000000000000000;// bit #21 for pin 21 
 	dirConfigLeft.pull_down_en = GPIO_PULLDOWN_ENABLE;
 	dirConfigLeft.pull_up_en = GPIO_PULLUP_ENABLE;
 
@@ -464,7 +325,7 @@ void Main()
 	// set gpio Forward for now
 	int rightDirection = Forward;
 	int leftDirection = rightDirection;
-	gpio_set_level(GPIO_NUM_21, leftDirection );
+	gpio_set_level(GPIO_NUM_21, leftDirection);
 	gpio_set_level(GPIO_NUM_4, rightDirection);
 
 	//// testing encoder readings
@@ -520,111 +381,90 @@ void Main()
 	//int16_t enc_count4;
 
 
-
-	char* jessessid = "Unhackable II";
-	const char* jessepassword = "plsdontguess";
+	char* jessessidHOT = "Unhackable II";
+	const char* jessepasswordHOT = "plsdontguess";
+	char* jessessid = "Cappy";
+	const char* jessepassword = "ThisIs@nAdequateP@ss123";
 	char* timssid = "hachey wifi";
 	const char* timpassword = "38hachey";
 	const char* webService = "https://thor.net.nait.ca/~jfederki/cmpe2500/Rc_Safety_Suite/Main%20Web/webservice.php";
 	const char* server = "thor.net.nait.ca";
 
-	Serial.begin(115200);
+	//Serial.begin(115200);
+
 	WiFi.begin(timssid, timpassword);
-	int connectCount = 0;
 
 	//Serial.print("Connecting");
 
 	while (WiFi.status() != WL_CONNECTED) {
-		delay(500);
-		WiFi.begin(jessessid, jessepassword);
-		//// connect to alternate wifi network
-		//if (++connectCount == 5) {
-		//	WiFi.begin(timssid, timpassword);
-		//	connectCount = 0;
-		//}
+		delay(200);
 		//Serial.print(".");
 	}
-
 	//Serial.println();
-
 	//Serial.print("Connected, IP address: ");
 	//Serial.println(WiFi.localIP());
 
 
-	HTTPClient http;	
-	JSONVar jason;
+	unsigned int timeStamp = 1;
+	HTTPClient http;
+	http.begin(webService);
+	http.setReuse(true);
 
-	int intendedAngle = 0;
-	int intendedSpeedPercent = 0;
-	unsigned int timeStamp = 0;
 	for (;;) {
+
+		int angleIn = 0;			
+		int speedInPercent = 0;	
+										
+		//HTTPClient http;				
+		//Begin webservice call
+		//http.begin(webService);
+
+		//Also check if connected to the internet//	
 		if (WiFi.status() == WL_CONNECTED) {
 
-			if (!http.connected())
-				http.begin(webService);
-			delay(2);			
-
-			//delay(50);
-
+			//Add header to http POST
 			http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-			delay(2);
-			int httpResponseCode = http.POST("action=GrabWebToCar&carID=1");
-			delay(2);
 
-			//Serial.println(httpResponseCode);
+			int httpResponseCode = http.POST("action=GrabWebToCar&carID=1");
+
+			//If good call
 			if (httpResponseCode > 0)
 			{
-				String payload = http.getString();		//causing crash and reboot ocasionally (try catch no fix)
-				delay(2);
-				//Serial.println();
-				//Serial.println(payload);
-				//Serial.println();
-				jason = JSON.parse(payload);
+				//Load response data
+				String payload = http.getString();
+				//String payload = http->getString();
 
+
+				//Parse response into our boy jason
+				JSONVar jason = JSON.parse(payload);
+
+				//Get data if timestamp has changed
 				if (timeStamp != atoi(jason["timeStamp"]) && atoi(jason["timeStamp"]) != 0)
 				{
-					//Serial.println(atoi(jason["timeStamp"]));
-					intendedAngle = atoi(jason["intendedAngle"]);
-					intendedSpeedPercent = atoi(jason["intendedSpeed"]);
+					angleIn = atoi(jason["angleIn"]);
+					speedInPercent = atoi(jason["intendedSpeed"]);
 					timeStamp = atoi(jason["timeStamp"]);
-					//Serial.println(intendedAngle);
-					//Serial.println(intendedSpeedPercent);
+
+					//likely want to count missed pings here
 				}
 
+				MotorDuty motorData = SimpleSteering(angleIn, speedInPercent);
+
+				//Set motor duty
+				mcpwm_set_duty(frontLeftMotor.pwm.unit, frontLeftMotor.pwm.timer, frontLeftMotor.pwm.opOut, motorData.frontLeftMotorDuty);
+				mcpwm_set_duty(frontRightMotor.pwm.unit, frontRightMotor.pwm.timer, frontRightMotor.pwm.opOut, motorData.frontRightMotorDuty);
+				mcpwm_set_duty(backLeftMotor.pwm.unit, backLeftMotor.pwm.timer, backLeftMotor.pwm.opOut, motorData.backLeftMotorDuty);
+				mcpwm_set_duty(backRightMotor.pwm.unit, backRightMotor.pwm.timer, backRightMotor.pwm.opOut, motorData.backRightMotorDuty);
 			}
-
-			MotorDuty motorData = SimpleSteering(intendedAngle, intendedSpeedPercent);
-
-			//Serial.println(motorData.frontLeftMotorDuty);
-			//Serial.println(motorData.frontRightMotorDuty);
-			//Serial.println(motorData.backLeftMotorDuty);
-			//Serial.println(motorData.backRightMotorDuty);
-			//Serial.println();
-
-			mcpwm_set_duty(frontLeftMotor.pwm.unit, frontLeftMotor.pwm.timer, frontLeftMotor.pwm.opOut, motorData.frontLeftMotorDuty);
-			mcpwm_set_duty(frontRightMotor.pwm.unit, frontRightMotor.pwm.timer, frontRightMotor.pwm.opOut, motorData.frontRightMotorDuty);
-			mcpwm_set_duty(backLeftMotor.pwm.unit, backLeftMotor.pwm.timer, backLeftMotor.pwm.opOut, motorData.backLeftMotorDuty);
-			mcpwm_set_duty(backRightMotor.pwm.unit, backRightMotor.pwm.timer, backRightMotor.pwm.opOut, motorData.backRightMotorDuty);
-
-			/*http.end();
-			delay(2);*/
 		}
-		//else
-		//{
-		//	while (WiFi.status() != WL_CONNECTED) {
-		//		//Serial.println("reconnecting wifi");
-		//		WiFi.begin(timssid, timpassword);
-		//		delay(3000);
-		//	}
-		//}
+		else
+		{
+			WiFi.begin(timssid, timpassword);
+			while (WiFi.status() != WL_CONNECTED) {
+			}
+		}
 
-
-		//mcpwm_set_duty(frontLeftMotor.pwm.unit, frontLeftMotor.pwm.timer, frontLeftMotor.pwm.opOut, 40);
-		//mcpwm_set_duty(frontRightMotor.pwm.unit, frontRightMotor.pwm.timer, frontRightMotor.pwm.opOut, 40);
-		//mcpwm_set_duty(backLeftMotor.pwm.unit, backLeftMotor.pwm.timer, backLeftMotor.pwm.opOut, 40);
-		//mcpwm_set_duty(backRightMotor.pwm.unit, backRightMotor.pwm.timer, backRightMotor.pwm.opOut, 40);
-
-
+		//http.end();
 
 		//// currently reading values every second with interrupt timer
 		//if (intFlag)
@@ -659,5 +499,15 @@ void Main()
 		//	intFlag = false;
 		//	portEXIT_CRITICAL(&timerMux);
 		//}
+
 	}
 }
+
+//timer ISR, trips a flag to use in main
+void IRAM_ATTR TimerInt()
+{
+	portENTER_CRITICAL_ISR(&timerMux);
+	intFlag = true;
+	portEXIT_CRITICAL_ISR(&timerMux);
+}
+
