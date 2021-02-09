@@ -18,11 +18,22 @@
 #include "driver/pcnt.h"
 #include <WiFi.h>
 
+char* jessessidHOT = "Unhackable II";
+const char* jessepasswordHOT = "plsdontguess";
+char* jessessid = "Cappy";
+const char* jessepassword = "ThisIs@nAdequateP@ss123";
+char* timssid = "hachey wifi";
+const char* timpassword = "38hachey";
+const char* webService = "https://coolstuffliveshere.com/Hobby_Projects/Rc_Safety_Suite/Main%20Web/webservice.php";
+const char* server = "thor.net.nait.ca";
+
+
 int _intendedAngle = 0;
 int _intendedSpeedPercent = 0;
 int _timeStamp = 1;
-
-int test = 0;
+int _lossPings = 0;
+HTTPClient mainThreadClient;
+HTTPClient dedicatedClient;
 
 //// timer interrupt stuff
 static volatile bool intFlag = false; // flag for use in main for actual code to run every interrupt interval
@@ -157,57 +168,57 @@ public:
 	int backRightMotorDuty;
 };
 
-MotorDuty SimpleSteering(int angle, int speed)
+MotorDuty SimpleSteering()
 {
 	MotorDuty motorSetting;
-	Serial.println("Into MotorDuty");
-	Serial.print("angle");
-	Serial.println(angle);
-	Serial.print("speed");
-	Serial.println(speed);
+	//Serial.println("Into MotorDuty");
+	//Serial.print("_intendedAngle");
+	//Serial.println(_intendedAngle);
+	//Serial.print("_intendedSpeedPercent");
+	//Serial.println(_intendedSpeedPercent);
 
 	//Go forward
-	if (angle > -10 && angle < 10)
+	if (_intendedAngle > -10 && _intendedAngle < 10)
 	{
 		gpio_set_level(GPIO_NUM_4, Forward);//left motor	//0 forward 1 back
 		gpio_set_level(GPIO_NUM_21, Forward);//right motor
-		motorSetting.frontLeftMotorDuty = speed;
-		motorSetting.frontRightMotorDuty = speed;
-		motorSetting.backLeftMotorDuty = speed;
-		motorSetting.backRightMotorDuty = speed;
+		motorSetting.frontLeftMotorDuty = _intendedSpeedPercent;
+		motorSetting.frontRightMotorDuty = _intendedSpeedPercent;
+		motorSetting.backLeftMotorDuty = _intendedSpeedPercent;
+		motorSetting.backRightMotorDuty = _intendedSpeedPercent;
 	}
 
 	//Burn right
-	else if (angle > 80 && angle < 100)
+	else if (_intendedAngle > 80 && _intendedAngle < 100)
 	{
 		gpio_set_level(GPIO_NUM_4, Forward);//left motor	//0 forward 1 back
 		gpio_set_level(GPIO_NUM_21, Reverse);//right motor
-		motorSetting.frontLeftMotorDuty = speed;
-		motorSetting.frontRightMotorDuty = speed;
-		motorSetting.backLeftMotorDuty = speed;
-		motorSetting.backRightMotorDuty = speed;
+		motorSetting.frontLeftMotorDuty = _intendedSpeedPercent;
+		motorSetting.frontRightMotorDuty = _intendedSpeedPercent;
+		motorSetting.backLeftMotorDuty = _intendedSpeedPercent;
+		motorSetting.backRightMotorDuty = _intendedSpeedPercent;
 	}
 
 	//Burn left
-	else if (angle < -80 && angle > -100)
+	else if (_intendedAngle < -80 && _intendedAngle > -100)
 	{
 		gpio_set_level(GPIO_NUM_4, Reverse);//left motor	//0 forward 1 back
 		gpio_set_level(GPIO_NUM_21, Forward);//right motor
-		motorSetting.frontLeftMotorDuty = speed;
-		motorSetting.frontRightMotorDuty = speed;
-		motorSetting.backLeftMotorDuty = speed;
-		motorSetting.backRightMotorDuty = speed;
+		motorSetting.frontLeftMotorDuty = _intendedSpeedPercent;
+		motorSetting.frontRightMotorDuty = _intendedSpeedPercent;
+		motorSetting.backLeftMotorDuty = _intendedSpeedPercent;
+		motorSetting.backRightMotorDuty = _intendedSpeedPercent;
 	}
 
 	//Go backward
-	else if (angle < -110 || angle > 110)
+	else if (_intendedAngle < -110 || _intendedAngle > 110)
 	{
 		gpio_set_level(GPIO_NUM_4, Reverse);//left motor	//0 forward 1 back
 		gpio_set_level(GPIO_NUM_21, Reverse);//right motor
-		motorSetting.frontLeftMotorDuty = speed;
-		motorSetting.frontRightMotorDuty = speed;
-		motorSetting.backLeftMotorDuty = speed;
-		motorSetting.backRightMotorDuty = speed;
+		motorSetting.frontLeftMotorDuty = _intendedSpeedPercent;
+		motorSetting.frontRightMotorDuty = _intendedSpeedPercent;
+		motorSetting.backLeftMotorDuty = _intendedSpeedPercent;
+		motorSetting.backRightMotorDuty = _intendedSpeedPercent;
 	}
 
 	////Else stop
@@ -222,112 +233,112 @@ MotorDuty SimpleSteering(int angle, int speed)
 	//}
 
 
-	//if (angle < 90 && angle > -90)
+	//if (_intendedAngle < 90 && _intendedAngle > -90)
 	//{
 	//	//gpio_set_level(GPIO_NUM_4, Forward);//left motor	//0 forward 1 back
 	//	gpio_set_level(GPIO_NUM_21, Forward);//right motor
-	//	motorSetting.frontLeftMotorDuty = speed;
-	//	motorSetting.frontRightMotorDuty = speed;
-	//	motorSetting.backLeftMotorDuty = speed;
-	//	motorSetting.backRightMotorDuty = speed;
+	//	motorSetting.frontLeftMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.frontRightMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.backLeftMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.backRightMotorDuty = _intendedSpeedPercent;
 	//}
 
 	////Go right forward
-	//if (angle < 90 && angle >= 0)
+	//if (_intendedAngle < 90 && _intendedAngle >= 0)
 	//{
 	//	//gpio_set_level(GPIO_NUM_4, Forward);//left motor	//0 forward 1 back
 	//	gpio_set_level(GPIO_NUM_21, Forward);//right motor
-	//	motorSetting.frontLeftMotorDuty = speed;
-	//	motorSetting.frontRightMotorDuty = speed - angle / 1.8;
-	//	motorSetting.backLeftMotorDuty = speed;
-	//	motorSetting.backRightMotorDuty = speed - angle / 1.8;
+	//	motorSetting.frontLeftMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.frontRightMotorDuty = _intendedSpeedPercent - _intendedAngle / 1.8;
+	//	motorSetting.backLeftMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.backRightMotorDuty = _intendedSpeedPercent - _intendedAngle / 1.8;
 	//}
 
 	////Go left forward
-	//else if (angle < 0 && angle > 0)
+	//else if (_intendedAngle < 0 && _intendedAngle > 0)
 	//{
 	//	//gpio_set_level(GPIO_NUM_4, Forward);//left motor	//0 forward 1 back
 	//	gpio_set_level(GPIO_NUM_21, Forward);//right motor
-	//	motorSetting.frontLeftMotorDuty = speed - angle / 1.8;
-	//	motorSetting.frontRightMotorDuty = speed;
-	//	motorSetting.backLeftMotorDuty = speed - angle / 1.8;
-	//	motorSetting.backRightMotorDuty = speed;
+	//	motorSetting.frontLeftMotorDuty = _intendedSpeedPercent - _intendedAngle / 1.8;
+	//	motorSetting.frontRightMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.backLeftMotorDuty = _intendedSpeedPercent - _intendedAngle / 1.8;
+	//	motorSetting.backRightMotorDuty = _intendedSpeedPercent;
 	//}
 
-	//else if (angle < -90 && angle > 90)
+	//else if (_intendedAngle < -90 && _intendedAngle > 90)
 	//{
 	//	//gpio_set_level(GPIO_NUM_4, Reverse);//left motor	//0 forward 1 back
 	//	gpio_set_level(GPIO_NUM_21, Reverse);//right motor
-	//	motorSetting.frontLeftMotorDuty = speed;
-	//	motorSetting.frontRightMotorDuty = speed;
-	//	motorSetting.backLeftMotorDuty = speed;
-	//	motorSetting.backRightMotorDuty = speed;
+	//	motorSetting.frontLeftMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.frontRightMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.backLeftMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.backRightMotorDuty = _intendedSpeedPercent;
 	//}
 
 	////Go back right
-	//else if (angle > 90 && angle <= 180)
+	//else if (_intendedAngle > 90 && _intendedAngle <= 180)
 	//{
 	//	//gpio_set_level(GPIO_NUM_4, Reverse);//left motor	//0 forward 1 back
 	//	gpio_set_level(GPIO_NUM_21, Reverse);//right motor
-	//	motorSetting.frontLeftMotorDuty = speed;
-	//	motorSetting.frontRightMotorDuty = speed;// -angle / 1.8;
-	//	motorSetting.backLeftMotorDuty = speed;
-	//	motorSetting.backRightMotorDuty = speed;// -angle / 1.8;
+	//	motorSetting.frontLeftMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.frontRightMotorDuty = _intendedSpeedPercent;// -_intendedAngle / 1.8;
+	//	motorSetting.backLeftMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.backRightMotorDuty = _intendedSpeedPercent;// -_intendedAngle / 1.8;
 	//}
 
 	////Go back left
-	//else if (angle < -90 && angle > -180)
+	//else if (_intendedAngle < -90 && _intendedAngle > -180)
 	//{
 	//	//gpio_set_level(GPIO_NUM_4, Reverse);//left motor	//0 forward 1 back
 	//	gpio_set_level(GPIO_NUM_21, Reverse);//right motor
-	//	motorSetting.frontLeftMotorDuty = speed;// -angle / 1.8;
-	//	motorSetting.frontRightMotorDuty = speed;
-	//	motorSetting.backLeftMotorDuty = speed;// -angle / 1.8;
-	//	motorSetting.backRightMotorDuty = speed;
+	//	motorSetting.frontLeftMotorDuty = _intendedSpeedPercent;// -_intendedAngle / 1.8;
+	//	motorSetting.frontRightMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.backLeftMotorDuty = _intendedSpeedPercent;// -_intendedAngle / 1.8;
+	//	motorSetting.backRightMotorDuty = _intendedSpeedPercent;
 	//}
 
 	////If straight forward
-	//else if (angle == 0)
+	//else if (_intendedAngle == 0)
 	//{
 	//	//gpio_set_level(GPIO_NUM_4, Forward);//left motor	//0 forward 1 back
 	//	gpio_set_level(GPIO_NUM_21, Forward);//right motor
-	//	motorSetting.frontLeftMotorDuty = speed;
-	//	motorSetting.frontRightMotorDuty = speed;
-	//	motorSetting.backLeftMotorDuty = speed;
-	//	motorSetting.backRightMotorDuty = speed;
+	//	motorSetting.frontLeftMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.frontRightMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.backLeftMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.backRightMotorDuty = _intendedSpeedPercent;
 	//}
 
 	////Burnout right if straight right
-	//else if (angle == 90)
+	//else if (_intendedAngle == 90)
 	//{
 	//	//gpio_set_level(GPIO_NUM_4, Forward);//left motor	//0 forward 1 back
 	//	gpio_set_level(GPIO_NUM_21, Reverse);//right motor
-	//	motorSetting.frontLeftMotorDuty = speed;
-	//	motorSetting.frontRightMotorDuty = speed;
-	//	motorSetting.backLeftMotorDuty = speed;
-	//	motorSetting.backRightMotorDuty = speed;
+	//	motorSetting.frontLeftMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.frontRightMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.backLeftMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.backRightMotorDuty = _intendedSpeedPercent;
 	//}
 
 	////If straight back
-	//else if (angle == -180)
+	//else if (_intendedAngle == -180)
 	//{
 	//	//gpio_set_level(GPIO_NUM_4, Forward);//left motor	//0 forward 1 back
 	//	gpio_set_level(GPIO_NUM_21, Forward);//right motor
-	//	motorSetting.frontLeftMotorDuty = speed;
-	//	motorSetting.frontRightMotorDuty = speed;
-	//	motorSetting.backLeftMotorDuty = speed;
-	//	motorSetting.backRightMotorDuty = speed;
+	//	motorSetting.frontLeftMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.frontRightMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.backLeftMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.backRightMotorDuty = _intendedSpeedPercent;
 	//}
 
 	////Burnout left if straight left
-	//else if (angle == -90)
+	//else if (_intendedAngle == -90)
 	//{
 	//	//gpio_set_level(GPIO_NUM_4, Reverse);//left motor	//0 forward 1 back
 	//	gpio_set_level(GPIO_NUM_21, Forward);//right motor
-	//	motorSetting.frontLeftMotorDuty = speed;
-	//	motorSetting.frontRightMotorDuty = speed;
-	//	motorSetting.backLeftMotorDuty = speed;
-	//	motorSetting.backRightMotorDuty = speed;
+	//	motorSetting.frontLeftMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.frontRightMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.backLeftMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.backRightMotorDuty = _intendedSpeedPercent;
 	//}
 
 	//Unknown state condition, stop it
@@ -343,29 +354,29 @@ MotorDuty SimpleSteering(int angle, int speed)
 
 
 	////Burnout right if straight right
-	//if (angle > 80 && angle < 100)
+	//if (_intendedAngle > 80 && _intendedAngle < 100)
 	//{
 	//	//gpio_set_level(GPIO_NUM_4, Forward);//left motor	//0 forward 1 back
 	//	gpio_set_level(GPIO_NUM_21, Reverse);//right motor
-	//	motorSetting.frontLeftMotorDuty = speed;
-	//	motorSetting.frontRightMotorDuty = speed;
-	//	motorSetting.backLeftMotorDuty = speed;
-	//	motorSetting.backRightMotorDuty = speed;
+	//	motorSetting.frontLeftMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.frontRightMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.backLeftMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.backRightMotorDuty = _intendedSpeedPercent;
 	//}
 
 	////Burnout left if straight left
-	//if (angle > -80 && angle < -100)
+	//if (_intendedAngle > -80 && _intendedAngle < -100)
 	//{
 	//	//gpio_set_level(GPIO_NUM_4, Reverse);//left motor	//0 forward 1 back
 	//	gpio_set_level(GPIO_NUM_21, Forward);//right motor
-	//	motorSetting.frontLeftMotorDuty = speed;
-	//	motorSetting.frontRightMotorDuty = speed;
-	//	motorSetting.backLeftMotorDuty = speed;
-	//	motorSetting.backRightMotorDuty = speed;
+	//	motorSetting.frontLeftMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.frontRightMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.backLeftMotorDuty = _intendedSpeedPercent;
+	//	motorSetting.backRightMotorDuty = _intendedSpeedPercent;
 	//}
 
 	//if stop
-	if (speed == 0)	//add || timeout to show disconnect
+	if (_intendedSpeedPercent == 0)	//add || timeout to show disconnect
 	{
 		//gpio_set_level(GPIO_NUM_4, !gpio_get_level(GPIO_NUM_4));
 		//gpio_set_level(GPIO_NUM_4, !gpio_get_level(GPIO_NUM_21));
@@ -378,71 +389,146 @@ MotorDuty SimpleSteering(int angle, int speed)
 	return motorSetting;
 }
 
-//void GetData()
-//{
-//	http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-//	int httpCode = http.POST("action=GrabWebToCar&carID=2");
-//
-//
-//	String payload = "";
-//
-//	// file found at server
-//	if (httpCode == HTTP_CODE_OK)
-//	{
-//		// create buffer for read
-//		uint8_t buff[50] = { 0 };
-//
-//		// get tcp stream
-//		WiFiClient* stream = http.getStreamPtr();
-//
-//		// get available data size
-//		size_t size = stream->available();
-//
-//		if (size) {
-//			// read up to 50 byte
-//			//int charPos = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
-//			uint charPos = stream->readBytes(buff, size);
-//
-//			bool inPayload = false;
-//
-//			for (int i = 0; i < charPos; i++)
-//			{
-//				//Serial.println(buff[i]);
-//				if (buff[i] == '{' || inPayload)
-//				{
-//					inPayload = true;
-//
-//					payload += (char)buff[i];
-//
-//					if (buff[i] == '}')
-//					{
-//						//inPayload = false;
-//						Serial.println("Should be exiting while");
-//
-//						//exit conditions
-//						i = charPos;
-//					}
-//				}
-//			}
-//		}
-//
-//		//Parse response into our boy jason
-//		JSONVar jason = JSON.parse(payload);
-//
-//		//Get data if timestamp has changed
-//		if (_timeStamp != atoi(jason["t"]) && atoi(jason["t"]) != 0)
-//		{
-//			_intendedAngle = atoi(jason["a"]);
-//			_intendedSpeedPercent = atoi(jason["s"]);
-//			_timeStamp = atoi(jason["t"]);
-//
-//			//likely want to count missed pings around here
-//		}
-//	}
-//}
+void GrabData(bool isMain)
+{
+	int httpCode = -1;
+
+	if (isMain)
+	{
+		mainThreadClient.addHeader("Content-Type", "application/x-www-form-urlencoded");
+		httpCode = mainThreadClient.POST("action=GrabWebToCar&carID=2");
+	}
+	else
+	{
+		dedicatedClient.addHeader("Content-Type", "application/x-www-form-urlencoded");
+		httpCode = dedicatedClient.POST("action=GrabWebToCar&carID=2");
+	}
+
+	String payload = "";
+
+	// file found at server
+	if (httpCode == HTTP_CODE_OK)
+	{
+		// create buffer for read
+		uint8_t buff[50] = { 0 };
+
+		WiFiClient* stream;
+
+		// get tcp stream
+		if (isMain)
+			stream = mainThreadClient.getStreamPtr();
+
+		else
+			stream = dedicatedClient.getStreamPtr();
+
+		// get available data size
+		size_t size = stream->available();
+
+		if (size) {
+			// read up to 50 byte
+			uint charPos = stream->readBytes(buff, size);
+
+			bool inPayload = false;
+
+			for (int i = 0; i < charPos; i++)
+			{
+				//Serial.println(buff[i]);
+				if (buff[i] == '{' || inPayload)
+				{
+					inPayload = true;
+
+					payload += (char)buff[i];
+
+					if (buff[i] == '}')
+					{
+						//exit conditions
+						i = charPos;
+					}
+				}
+			}
+		}
+
+
+		//Parse response into our boy jason
+		JSONVar jason = JSON.parse(payload);
+
+		//Serial.println(_timeStamp); //bug timestamp not updating?
+		//Serial.println(jason["t"]);
+
+		//Get data if timestamp has changed
+		if (_timeStamp != atoi(jason["t"]) && atoi(jason["t"]) != 0)
+		{
+			_intendedAngle = atoi(jason["a"]);
+			_intendedSpeedPercent = atoi(jason["s"]);
+			_timeStamp = atoi(jason["t"]);
+			_lossPings = 0;
+
+			//Serial.println(_intendedAngle);
+			//Serial.println(_intendedSpeedPercent);
+			//Serial.println(_timeStamp);
+		}
+
+		else
+		{
+			_lossPings++;
+
+			if (_lossPings > 2)
+			{
+				_intendedAngle = 0;
+				_intendedSpeedPercent = 0;
+				_timeStamp = 0;
+			}
+		}
+	}
+}
+
+void Core0Grab(void* param)
+{
+	dedicatedClient.begin(webService);
+
+	for (;;)
+	{
+		if (WiFi.status() == WL_CONNECTED)
+		{
+			GrabData(false);
+		}
+
+		//Else reconnect wifi
+		else
+		{
+			WiFi.begin(jessessid, jessepassword);
+			while (WiFi.status() != WL_CONNECTED) {
+			}
+		}
+
+	}
+}
 
 void Main()
 {
+
+	//Serial.begin(115200);
+	TaskHandle_t core0DataFetch;
+
+	WiFi.begin(jessessid, jessepassword);
+
+	while (WiFi.status() != WL_CONNECTED) {
+	}
+
+	//Serial.println("Wifi connected");
+
+	xTaskCreatePinnedToCore(
+		Core0Grab, /* Function to implement the task */
+		"Grab Data via second thread",   /* Name of the task */
+		10000,     /* Stack size in words */
+		NULL,      /* Task input parameter */
+		0,         /* Priority of the task */
+		&core0DataFetch,    /* Task handle. */
+		0);        /* Core where the task should run */
+
+	//HTTPClient http;
+	mainThreadClient.begin(webService); //Specify the URL and certificate
+
 	// motor one configs
 	Motor_Settings frontLeftMotor;
 	frontLeftMotor.pwm.unit = MCPWM_UNIT_0;               // frontLeftMotor using pwm unit 0
@@ -582,98 +668,13 @@ void Main()
 	//int16_t enc_count3;
 	//int16_t enc_count4;
 
-
-
-	char* jessessidHOT = "Unhackable II";
-	const char* jessepasswordHOT = "plsdontguess";
-	char* jessessid = "Cappy";
-	const char* jessepassword = "ThisIs@nAdequateP@ss123";
-	char* timssid = "hachey wifi";
-	const char* timpassword = "38hachey";
-	const char* webService = "https://coolstuffliveshere.com/Hobby_Projects/Rc_Safety_Suite/Main%20Web/webservice.php";
-	const char* server = "thor.net.nait.ca";
-
-	Serial.begin(115200);
-	//Serial.println("Serial Has begun");
-	WiFi.begin(jessessid, jessepassword);
-
-	while (WiFi.status() != WL_CONNECTED) {
-	}
-
-	Serial.println("Wifi connected");
-
-	HTTPClient http;
-	http.begin(webService); //Specify the URL and certificate
-	http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-
 	for (;;)
 	{
 		if (WiFi.status() == WL_CONNECTED)
 		{
-			//http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-			int httpCode = http.POST("action=GrabWebToCar&carID=2");
+			GrabData(true);
 
-			String payload = "";
-
-			// file found at server
-			if (httpCode == HTTP_CODE_OK) 
-			{ 
-				// create buffer for read
-				uint8_t buff[50] = { 0 };
-
-				// get tcp stream
-				WiFiClient* stream = http.getStreamPtr();
-
-				// get available data size
-				size_t size = stream->available();
-
-				if (size) {
-					// read up to 50 byte
-					//int charPos = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
-					uint charPos = stream->readBytes(buff, size);
-
-					bool inPayload = false;
-
-					for (int i = 0; i < charPos; i++)
-					{
-						//Serial.println(buff[i]);
-						if (buff[i] == '{' || inPayload)
-						{
-							inPayload = true;
-
-							payload += (char)buff[i];
-
-							if (buff[i] == '}')
-							{
-								//inPayload = false;
-								Serial.println("Should be exiting while");
-
-								//exit conditions
-								i = charPos;
-							}
-						}
-					}
-				}
-
-				//Parse response into our boy jason
-				JSONVar jason = JSON.parse(payload);
-
-				//Get data if timestamp has changed
-				if (_timeStamp != atoi(jason["t"]) && atoi(jason["t"]) != 0)
-				{
-					_intendedAngle = atoi(jason["a"]);
-					_intendedSpeedPercent = atoi(jason["s"]);
-					_timeStamp = atoi(jason["t"]);
-
-					//likely want to count missed pings around here
-				}
-			}
-				
-
-			Serial.println(payload);
-
-			//Get motor pwm data
-			MotorDuty motorData = SimpleSteering(_intendedAngle, _intendedSpeedPercent);
+			MotorDuty motorData = SimpleSteering();
 
 			//Set motor duty
 			mcpwm_set_duty(frontLeftMotor.pwm.unit, frontLeftMotor.pwm.timer, frontLeftMotor.pwm.opOut, motorData.frontLeftMotorDuty);
