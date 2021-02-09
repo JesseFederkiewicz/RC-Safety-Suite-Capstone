@@ -378,6 +378,69 @@ MotorDuty SimpleSteering(int angle, int speed)
 	return motorSetting;
 }
 
+//void GetData()
+//{
+//	http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+//	int httpCode = http.POST("action=GrabWebToCar&carID=2");
+//
+//
+//	String payload = "";
+//
+//	// file found at server
+//	if (httpCode == HTTP_CODE_OK)
+//	{
+//		// create buffer for read
+//		uint8_t buff[50] = { 0 };
+//
+//		// get tcp stream
+//		WiFiClient* stream = http.getStreamPtr();
+//
+//		// get available data size
+//		size_t size = stream->available();
+//
+//		if (size) {
+//			// read up to 50 byte
+//			//int charPos = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
+//			uint charPos = stream->readBytes(buff, size);
+//
+//			bool inPayload = false;
+//
+//			for (int i = 0; i < charPos; i++)
+//			{
+//				//Serial.println(buff[i]);
+//				if (buff[i] == '{' || inPayload)
+//				{
+//					inPayload = true;
+//
+//					payload += (char)buff[i];
+//
+//					if (buff[i] == '}')
+//					{
+//						//inPayload = false;
+//						Serial.println("Should be exiting while");
+//
+//						//exit conditions
+//						i = charPos;
+//					}
+//				}
+//			}
+//		}
+//
+//		//Parse response into our boy jason
+//		JSONVar jason = JSON.parse(payload);
+//
+//		//Get data if timestamp has changed
+//		if (_timeStamp != atoi(jason["t"]) && atoi(jason["t"]) != 0)
+//		{
+//			_intendedAngle = atoi(jason["a"]);
+//			_intendedSpeedPercent = atoi(jason["s"]);
+//			_timeStamp = atoi(jason["t"]);
+//
+//			//likely want to count missed pings around here
+//		}
+//	}
+//}
+
 void Main()
 {
 	// motor one configs
@@ -541,104 +604,84 @@ void Main()
 
 	HTTPClient http;
 	http.begin(webService); //Specify the URL and certificate
+	http.addHeader("Content-Type", "application/x-www-form-urlencoded");
 
 	for (;;)
 	{
 		if (WiFi.status() == WL_CONNECTED)
 		{
-			http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+			//http.addHeader("Content-Type", "application/x-www-form-urlencoded");
 			int httpCode = http.POST("action=GrabWebToCar&carID=2");
 
-			if (httpCode == HTTP_CODE_OK) {
+			String payload = "";
 
-				String payload = "";
+			// file found at server
+			if (httpCode == HTTP_CODE_OK) 
+			{ 
+				// create buffer for read
+				uint8_t buff[50] = { 0 };
 
-				// file found at server
-				if (httpCode == HTTP_CODE_OK) { //
+				// get tcp stream
+				WiFiClient* stream = http.getStreamPtr();
 
-					//Stream way
-					// get lenght of document (is -1 when Server sends no Content-Length header)
-					int len = http.getSize();
+				// get available data size
+				size_t size = stream->available();
 
-					// create buffer for read
-					uint8_t buff[50] = { 0 };
+				if (size) {
+					// read up to 50 byte
+					//int charPos = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
+					uint charPos = stream->readBytes(buff, size);
 
-					// get tcp stream
-					WiFiClient* stream = http.getStreamPtr();
+					bool inPayload = false;
 
-					// read all data from server
-					while (http.connected() && (len > 0 || len == -1))
+					for (int i = 0; i < charPos; i++)
 					{
-						Serial.println("In While");
-						Serial.println(len);
-						// get available data size
-						size_t size = stream->available();
-
-						//payload += stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
-
-						bool inPayload = false;
-
-						if (size) {
-							// read up to 50 byte
-							//int charPos = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
-							uint charPos = stream->readBytes(buff, size);
-
-							for (int i = 0; i < charPos; i++)
-							{
-								//Serial.println(buff[i]);
-								if (buff[i] == '{' || inPayload)
-								{
-									inPayload = true;
-
-									payload += (char)buff[i];
-
-									if (buff[i] == '}')
-									{
-										//inPayload = false;
-										Serial.println("Should be exiting while");
-
-										//exit conditions
-										len = -2;
-										i = charPos;
-									}
-								}
-							}
-
-							//Serial.println("Should be exiting payload");
-
-							if (len > 0) {
-								len -= charPos;
-							}
-						}
-
-
-						//Parse response into our boy jason
-						JSONVar jason = JSON.parse(payload);
-
-						//Get data if timestamp has changed
-						if (_timeStamp != atoi(jason["t"]) && atoi(jason["t"]) != 0)
+						//Serial.println(buff[i]);
+						if (buff[i] == '{' || inPayload)
 						{
-							_intendedAngle = atoi(jason["a"]);
-							_intendedSpeedPercent = atoi(jason["s"]);
-							_timeStamp = atoi(jason["t"]);
+							inPayload = true;
 
-							//likely want to count missed pings around here
+							payload += (char)buff[i];
+
+							if (buff[i] == '}')
+							{
+								//inPayload = false;
+								Serial.println("Should be exiting while");
+
+								//exit conditions
+								i = charPos;
+							}
 						}
 					}
 				}
 
-				Serial.println(payload);
+				//Parse response into our boy jason
+				JSONVar jason = JSON.parse(payload);
 
-				//Get motor pwm data
-				MotorDuty motorData = SimpleSteering(_intendedAngle, _intendedSpeedPercent);
+				//Get data if timestamp has changed
+				if (_timeStamp != atoi(jason["t"]) && atoi(jason["t"]) != 0)
+				{
+					_intendedAngle = atoi(jason["a"]);
+					_intendedSpeedPercent = atoi(jason["s"]);
+					_timeStamp = atoi(jason["t"]);
 
-				//Set motor duty
-				mcpwm_set_duty(frontLeftMotor.pwm.unit, frontLeftMotor.pwm.timer, frontLeftMotor.pwm.opOut, motorData.frontLeftMotorDuty);
-				mcpwm_set_duty(frontRightMotor.pwm.unit, frontRightMotor.pwm.timer, frontRightMotor.pwm.opOut, motorData.frontRightMotorDuty);
-				mcpwm_set_duty(backLeftMotor.pwm.unit, backLeftMotor.pwm.timer, backLeftMotor.pwm.opOut, motorData.backLeftMotorDuty);
-				mcpwm_set_duty(backRightMotor.pwm.unit, backRightMotor.pwm.timer, backRightMotor.pwm.opOut, motorData.backRightMotorDuty);
+					//likely want to count missed pings around here
+				}
 			}
+				
+
+			Serial.println(payload);
+
+			//Get motor pwm data
+			MotorDuty motorData = SimpleSteering(_intendedAngle, _intendedSpeedPercent);
+
+			//Set motor duty
+			mcpwm_set_duty(frontLeftMotor.pwm.unit, frontLeftMotor.pwm.timer, frontLeftMotor.pwm.opOut, motorData.frontLeftMotorDuty);
+			mcpwm_set_duty(frontRightMotor.pwm.unit, frontRightMotor.pwm.timer, frontRightMotor.pwm.opOut, motorData.frontRightMotorDuty);
+			mcpwm_set_duty(backLeftMotor.pwm.unit, backLeftMotor.pwm.timer, backLeftMotor.pwm.opOut, motorData.backLeftMotorDuty);
+			mcpwm_set_duty(backRightMotor.pwm.unit, backRightMotor.pwm.timer, backRightMotor.pwm.opOut, motorData.backRightMotorDuty);
 		}
+		
 
 		//Else reconnect wifi
 		else
