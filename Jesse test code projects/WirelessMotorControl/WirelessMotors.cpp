@@ -19,6 +19,12 @@
 #include "driver/pcnt.h"
 #include <WiFi.h>
 
+int _intendedAngle = 0;
+int _intendedSpeedPercent = 0;
+int _timeStamp = 1;
+
+int test = 0;
+
 //// timer interrupt stuff
 static volatile bool intFlag = false; // flag for use in main for actual code to run every interrupt interval
 portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED; // used for syncing main and isr, ignore this red squiggle, still works
@@ -373,7 +379,6 @@ MotorDuty SimpleSteering(int angle, int speed)
 	return motorSetting;
 }
 
-
 void Main()
 {
 	// motor one configs
@@ -386,7 +391,7 @@ void Main()
 	frontLeftMotor.encoder.pin = 34;                      // encoder input on pin 34
 	frontLeftMotor.encoder.edgeCapture = MCPWM_POS_EDGE;  // capture positive edges
 	frontLeftMotor.encoder.gpioNum = GPIO_NUM_34;        // gpio num should match pin num
-	
+
 	// motor two configs
 	Motor_Settings frontRightMotor;
 	frontRightMotor.pwm.unit = frontLeftMotor.pwm.unit;    // frontRightMotor shares unit with frontLeftMotor
@@ -449,7 +454,7 @@ void Main()
 	gpio_config_t dirConfigLeft;
 	dirConfigLeft.intr_type = GPIO_INTR_DISABLE;
 	dirConfigLeft.mode = GPIO_MODE_OUTPUT;
-	dirConfigLeft.pin_bit_mask = 0b1000000000000000000000 ;// bit #21 for pin 21 
+	dirConfigLeft.pin_bit_mask = 0b1000000000000000000000;// bit #21 for pin 21 
 	dirConfigLeft.pull_down_en = GPIO_PULLDOWN_ENABLE;
 	dirConfigLeft.pull_up_en = GPIO_PULLUP_ENABLE;
 
@@ -460,7 +465,7 @@ void Main()
 	// set gpio Forward for now
 	int rightDirection = Forward;
 	int leftDirection = rightDirection;
-	gpio_set_level(GPIO_NUM_21, leftDirection );
+	gpio_set_level(GPIO_NUM_21, leftDirection);
 	gpio_set_level(GPIO_NUM_4, rightDirection);
 
 	//// testing encoder readings
@@ -523,7 +528,7 @@ void Main()
 	const char* jessepassword = "ThisIs@nAdequateP@ss123";
 	char* timssid = "hachey wifi";
 	const char* timpassword = "38hachey";
-	const char* webService = "https://thor.net.nait.ca/~jfederki/cmpe2500/Rc_Safety_Suite/Main%20Web/webservice.php";
+	const char* webService = "https://coolstuffliveshere.com/Hobby_Projects/Rc_Safety_Suite/Main%20Web/webservice.php";
 	const char* server = "thor.net.nait.ca";
 
 	Serial.begin(115200);
@@ -532,6 +537,8 @@ void Main()
 
 	while (WiFi.status() != WL_CONNECTED) {
 	}
+
+	Serial.println("Wifi connected");
 
 	//unsigned int timeStamp = 1;
 	//HTTPClient http;
@@ -601,68 +608,184 @@ void Main()
 	//	//http.end();
 	//}
 
-
-	unsigned int timeStamp = 1;
 	HTTPClient http;
-	http.begin(webService);
-	http.setReuse(true);
+	http.begin(webService); //Specify the URL and certificate
 
-	for (;;) {
-		//HTTPClient http;					//http client to interface with webservices
-		int intendedAngle = 0;				//whats the intended angle? grab from db
-		int intendedSpeedPercent = 0;		//intended speed? ie distance from ctr of webpage as percent 
-											//trace if the user has lost connection to the web page
+	for (;;)
+	{
 
-		//Begin webservice call
-		//http.begin(webService);
+		http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+		int httpCode = http.POST("action=GrabWebToCar&carID=2");
 
 
-		//Also check if connected to the internet//	
-		if (WiFi.status() == WL_CONNECTED) {
+		if (httpCode > 0) {
+			// HTTP header has been send and Server response header has been handled
 
-			//Add header to http POST
-			http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-			//http->addHeader("Content-Type", "application/x-www-form-urlencoded");
+			// file found at server
+			if (httpCode == HTTP_CODE_OK) { //
 
-			/*httpResponseCode = http.sendRequest("POST", "action=GrabWebToCar&carID=1");*/
-			int httpResponseCode = http.POST("action=GrabWebToCar&carID=1");
-			//httpResponseCode = http.GET();	//requires a different url in .begin (webService?action=GrabWebToCar&carID=1) // support added in webservices.php
+				//Stream way
+				// get lenght of document (is -1 when Server sends no Content-Length header)
+				int len = http.getSize();
 
-			//If good call
-			if (httpResponseCode > 0)
-			{
+				// create buffer for read
+				uint8_t buff[50] = { 0 };
+
+				// get tcp stream
+				WiFiClient* stream = http.getStreamPtr();
+
+				// read all data from server
+				while (http.connected() && (len > 0 || len == -1)) {
+					// get available data size
+					size_t size = stream->available();
+
+					if (size) {
+						// read up to 50 byte
+						int charPos = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
+
+						// write it to Serial
+						Serial.write(buff, charPos);
+
+						//Serial.write()
+
+						if (len > 0) {
+							len -= charPos;
+						}
+					}
+					//Else get out of loop
+					else
+						len = -2;
+				}
+
+				
+
+				/* VIA STRING
 				//Load response data
 				String payload = http.getString();
 				//String payload = http->getString();
-				http.getStreamPtr();
+				Serial.println(payload);
 
 				//Parse response into our boy jason
 				JSONVar jason = JSON.parse(payload);
 
 				//Get data if timestamp has changed
-				if (timeStamp != atoi(jason["timeStamp"]) && atoi(jason["timeStamp"]) != 0)
+				if (_timeStamp != atoi(jason["timeStamp"]) && atoi(jason["timeStamp"]) != 0)
 				{
-					intendedAngle = atoi(jason["intendedAngle"]);
-					intendedSpeedPercent = atoi(jason["intendedSpeed"]);
-					timeStamp = atoi(jason["timeStamp"]);
+					_intendedAngle = atoi(jason["intendedAngle"]);
+					_intendedSpeedPercent = atoi(jason["intendedSpeed"]);
+					_timeStamp = atoi(jason["timeStamp"]);
 
 					//likely want to count missed pings here
 				}
+
+				*/
+
+
+
 			}
 		}
 
-
-		else
-		{
-			WiFi.begin(jessessid, jessepassword);
-			while (WiFi.status() != WL_CONNECTED) {
-			}
-		}
-
-		//http.end();
 	}
 
-	
+
+	//unsigned int timeStamp = 1;
+	//HTTPClient http;
+	//http.begin(webService);
+	//http.setReuse(true);
+
+	//for (;;) {
+	//	//HTTPClient http;					//http client to interface with webservices
+	//	int intendedAngle = 0;				//whats the intended angle? grab from db
+	//	int intendedSpeedPercent = 0;		//intended speed? ie distance from ctr of webpage as percent 
+	//										//trace if the user has lost connection to the web page
+
+	//	//Begin webservice call
+	//	//http.begin(webService);
+
+
+	//	//Also check if connected to the internet//	
+	//	if (WiFi.status() == WL_CONNECTED) {
+
+	//		//Add header to http POST
+	//		http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+	//		//http->addHeader("Content-Type", "application/x-www-form-urlencoded");
+
+	//		/*httpResponseCode = http.sendRequest("POST", "action=GrabWebToCar&carID=1");*/
+	//		int httpResponseCode = http.POST("action=GrabWebToCar&carID=2");
+	//		//httpResponseCode = http.GET();	//requires a different url in .begin (webService?action=GrabWebToCar&carID=1) // support added in webservices.php
+
+	//		Serial.println("Before Response Code");
+
+	//		//If good call
+	//		if (httpResponseCode > 0)
+	//		{
+	//			Serial.println("After Response Code");
+	//			//Load response data
+	//			//String payload = http.getString();
+	//			//String payload = http->getString();
+	//			//http.getStreamPtr();
+	//			int length = http.getSize();
+
+	//			Serial.println(length);
+
+	//			uint8_t buff[128] = { 0 };
+
+	//			WiFiClient *stream = http.getStreamPtr();
+
+	//			while (http.connected() && (length > 0 || length == 1))
+	//			{
+	//				Serial.println("In Connected");
+	//				uint size = stream->available();
+	//				test++;
+	//				Serial.println(test);
+	//				Serial.println(size);
+
+
+	//				if (size)
+	//				{
+	//					int charNum = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
+
+	//					Serial.write(buff, charNum);
+
+	//					if (length > 0)
+	//						length -= charNum;
+
+	//				}
+	//				delay(1);
+	//			}
+
+
+
+	//			Serial.println("Past connected");
+
+	//			//Serial.println(payload);
+	//			//Parse response into our boy jason
+	//			//JSONVar jason = JSON.parse(payload);
+
+	//			////Get data if timestamp has changed
+	//			//if (timeStamp != atoi(jason["timeStamp"]) && atoi(jason["timeStamp"]) != 0)
+	//			//{
+	//			//	intendedAngle = atoi(jason["intendedAngle"]);
+	//			//	intendedSpeedPercent = atoi(jason["intendedSpeed"]);
+	//			//	timeStamp = atoi(jason["timeStamp"]);
+
+	//			//	//likely want to count missed pings here
+	//			//}
+	//		}
+	//	}
+
+
+	//	else
+	//	{
+	//		WiFi.begin(jessessid, jessepassword);
+	//		while (WiFi.status() != WL_CONNECTED) {
+	//		}
+	//	}
+
+	//	//http.end();
+	//}
+
+
 	/*
 		Program pulls much more often if you dont .begin and .end in for loop providing valuable response times from user input
 		Played around with pointer
@@ -908,4 +1031,3 @@ void IRAM_ATTR TimerInt()
 	intFlag = true;
 	portEXIT_CRITICAL_ISR(&timerMux);
 }
-
