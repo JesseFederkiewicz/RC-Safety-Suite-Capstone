@@ -8,16 +8,17 @@
 #include "HardwareSerial.h"
 #include "arduino.h"
 
-void Core0Func(void* param) {
+int _counter = 0; // use both threads to modify this variable, doersnt seem to be a problem
+
+void Core0Func(void* param)
+{
 	for (;;) {
-		Serial.printf("New thread on Core#: %d\n", xPortGetCoreID());
-		delay(1000);
+		Serial.printf("core0: %d\n", --_counter);
 	}
 }
 
-
-void Main() {
-
+void Main() 
+{		
 	// lets muiltiCore this
 	Serial.begin(115200);
 	TaskHandle_t task1;
@@ -31,10 +32,8 @@ void Main() {
 		&task1,    /* Task handle. */
 		0);        /* Core where the task should run */
 
-
 	for (;;) 
 	{
-		delay(250);
-		Serial.printf("Main thread on Core#: %d\n", xPortGetCoreID());
+		_counter += 2;
 	}
 }
