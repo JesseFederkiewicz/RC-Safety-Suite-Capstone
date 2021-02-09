@@ -3,8 +3,6 @@
 // Author:      Tim Hachey
 // Description: now that we have wifi/database communication, 
 //				lets put it together and control the motors from the web!
-//
-//				Lots of debugging, fix was heap space shown in this file
 ///////////////////////////////////////////////////////////////////////////////////////
 #include "WirelessMotors.h"
 #include "WiFi.h"
@@ -17,36 +15,18 @@
 #include "driver/timer.h"
 #include "arduino.h"
 #include "driver/pcnt.h"
-#include <WiFi.h>
 
 //// timer interrupt stuff
 static volatile bool intFlag = false; // flag for use in main for actual code to run every interrupt interval
 portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED; // used for syncing main and isr, ignore this red squiggle, still works
 
-MotorDirection _currentLeftDirection = Forward;
-MotorDirection _currentRightDirection = Reverse;
-
-// custom structs to hold several emuns that are needed for configs/inits/setting duty:
-
-typedef struct PWM_Settings {
-	int pin;                   // the GPIO pin for the pwm signal going to the H-bridge and motor
-	mcpwm_unit_t unit;         // the pwm unit that will control the motor
-	mcpwm_timer_t timer;       // the timer to use for the pwm operator
-	mcpwm_operator_t opOut;    // the pwm operator output to use with this motor
-	mcpwm_io_signals_t signal; // the specific pwm io signal
-};
-
-typedef struct Encoder_Settings {
-	int pin;                             // GPIO pin of the encoder input signal
-	gpio_num_t gpioNum;                  // gpio num
-	mcpwm_capture_on_edge_t edgeCapture; // which edge detection to use, pos/neg
-};
-
-// bundle up each struct into a nice group for each motor
-typedef struct Motor_Settings {
-	PWM_Settings pwm;
-	Encoder_Settings encoder;
-};
+//timer ISR, trips a flag to use in main
+void IRAM_ATTR TimerInt()
+{
+	portENTER_CRITICAL_ISR(&timerMux);
+	intFlag = true;
+	portEXIT_CRITICAL_ISR(&timerMux);
+}
 
 // this setup will need to be run for each motor
 void PWMSetup(Motor_Settings m, mcpwm_config_t* unitConf)
@@ -108,7 +88,6 @@ void PCNTSetup(Motor_Settings m1, Motor_Settings m2, Motor_Settings m3, Motor_Se
 	m2Enc.counter_h_lim = INT16_MAX;
 	m2Enc.counter_l_lim = INT16_MIN;
 
-
 	pcnt_unit_config(&m1Enc);
 	pcnt_unit_config(&m2Enc);
 	pcnt_unit_config(&m3Enc);
@@ -123,7 +102,6 @@ void PCNTSetup(Motor_Settings m1, Motor_Settings m2, Motor_Settings m3, Motor_Se
 	pcnt_filter_enable(PCNT_UNIT_2);
 	pcnt_set_filter_value(PCNT_UNIT_3, 250);
 	pcnt_filter_enable(PCNT_UNIT_3);
-
 
 	gpio_set_direction(m1.encoder.gpioNum, GPIO_MODE_INPUT);
 	gpio_set_direction(m2.encoder.gpioNum, GPIO_MODE_INPUT);
@@ -158,7 +136,7 @@ MotorDuty SimpleSteering(int angle, int speedIn)
 	// convert % speed to range of 40-100 for more precise control
 	// out = ((60/100) * in) + 40
 
-	float speed = (0.6 * speedIn ) + 40.0;
+	float speed = speedIn == 0 ? 0 : (0.6 * speedIn) + 40.0;
 
 	MotorDuty motorSetting;
 	//Serial.println("Into MotorDuty");
@@ -172,7 +150,7 @@ MotorDuty SimpleSteering(int angle, int speedIn)
 	//Go forward
 	if (angle > -10 && angle < 10)
 	{
-		gpio_set_level(GPIO_NUM_4, Forward);//left motor	//0 forward 1 back
+		gpio_set_level(GPIO_NUM_4, Forward);//left motor
 		gpio_set_level(GPIO_NUM_21, Forward);//right motor
 		motorSetting.frontLeftMotorDuty = speed;
 		motorSetting.frontRightMotorDuty = speed;
@@ -183,7 +161,7 @@ MotorDuty SimpleSteering(int angle, int speedIn)
 	//Burn right
 	else if (angle > 80 && angle < 100)
 	{
-		gpio_set_level(GPIO_NUM_4, Forward);//left motor	//0 forward 1 back
+		gpio_set_level(GPIO_NUM_4, Forward);//left motor	
 		gpio_set_level(GPIO_NUM_21, Reverse);//right motor
 		motorSetting.frontLeftMotorDuty = speed;
 		motorSetting.frontRightMotorDuty = speed;
@@ -194,7 +172,7 @@ MotorDuty SimpleSteering(int angle, int speedIn)
 	//Burn left
 	else if (angle < -80 && angle > -100)
 	{
-		gpio_set_level(GPIO_NUM_4, Reverse);//left motor	//0 forward 1 back
+		gpio_set_level(GPIO_NUM_4, Reverse);//left motor
 		gpio_set_level(GPIO_NUM_21, Forward);//right motor
 		motorSetting.frontLeftMotorDuty = speed;
 		motorSetting.frontRightMotorDuty = speed;
@@ -205,7 +183,7 @@ MotorDuty SimpleSteering(int angle, int speedIn)
 	//Go backward
 	else if (angle < -110 || angle > 110)
 	{
-		gpio_set_level(GPIO_NUM_4, Reverse);//left motor	//0 forward 1 back
+		gpio_set_level(GPIO_NUM_4, Reverse);//left motor	
 		gpio_set_level(GPIO_NUM_21, Reverse);//right motor
 		motorSetting.frontLeftMotorDuty = speed;
 		motorSetting.frontRightMotorDuty = speed;
@@ -238,51 +216,51 @@ MotorDuty SimpleSteering(int angle, int speedIn)
 	return motorSetting;
 }
 
-
 void Main()
 {
+
 	// motor one configs
 	Motor_Settings frontLeftMotor;
-	frontLeftMotor.pwm.unit = MCPWM_UNIT_0;               // frontLeftMotor using pwm unit 0
-	frontLeftMotor.pwm.timer = MCPWM_TIMER_0;             // frontLeftMotor using unit 0 timer 0
-	frontLeftMotor.pwm.opOut = MCPWM_OPR_A;               // frontLeftMotor on operator 0 output A
-	frontLeftMotor.pwm.signal = MCPWM0A;                  // sort of the same as above, needed for gpio_init
-	frontLeftMotor.pwm.pin = 22;                          // pwm for frontLeftMotor on pin 22
-	frontLeftMotor.encoder.pin = 34;                      // encoder input on pin 34
-	frontLeftMotor.encoder.edgeCapture = MCPWM_POS_EDGE;  // capture positive edges
+	frontLeftMotor.pwm.unit = MCPWM_UNIT_0;              // frontLeftMotor using pwm unit 0
+	frontLeftMotor.pwm.timer = MCPWM_TIMER_0;            // frontLeftMotor using unit 0 timer 0
+	frontLeftMotor.pwm.opOut = MCPWM_OPR_A;              // frontLeftMotor on operator 0 output A
+	frontLeftMotor.pwm.signal = MCPWM0A;                 // sort of the same as above, needed for gpio_init
+	frontLeftMotor.pwm.pin = 22;                         // pwm for frontLeftMotor on pin 22
+	frontLeftMotor.encoder.pin = 34;                     // encoder input on pin 34
+	frontLeftMotor.encoder.edgeCapture = MCPWM_POS_EDGE; // capture positive edges
 	frontLeftMotor.encoder.gpioNum = GPIO_NUM_34;        // gpio num should match pin num
 
 	// motor two configs
 	Motor_Settings frontRightMotor;
-	frontRightMotor.pwm.unit = frontLeftMotor.pwm.unit;    // frontRightMotor shares unit with frontLeftMotor
-	frontRightMotor.pwm.timer = frontLeftMotor.pwm.timer;  // frontRightMotor shares timer with frontLeftMotor
-	frontRightMotor.pwm.opOut = MCPWM_OPR_B;               // frontRightMotor on operator 0 output B
-	frontRightMotor.pwm.signal = MCPWM0B;                  // needed for gpio_init
+	frontRightMotor.pwm.unit = frontLeftMotor.pwm.unit;   // frontRightMotor shares unit with frontLeftMotor
+	frontRightMotor.pwm.timer = frontLeftMotor.pwm.timer; // frontRightMotor shares timer with frontLeftMotor
+	frontRightMotor.pwm.opOut = MCPWM_OPR_B;              // frontRightMotor on operator 0 output B
+	frontRightMotor.pwm.signal = MCPWM0B;                 // needed for gpio_init
 	frontRightMotor.pwm.pin = 23;		                  // pwm for frontLeftMotor on pin 23
-	frontRightMotor.encoder.pin = 35;                      // encoder input on pin 35
-	frontRightMotor.encoder.edgeCapture = MCPWM_POS_EDGE;  // capture positive edges
+	frontRightMotor.encoder.pin = 35;                     // encoder input on pin 35
+	frontRightMotor.encoder.edgeCapture = MCPWM_POS_EDGE; // capture positive edges
 	frontRightMotor.encoder.gpioNum = GPIO_NUM_35;        // gpio num should match pin num
 
 	// motor three configs
 	Motor_Settings backLeftMotor;
-	backLeftMotor.pwm.unit = MCPWM_UNIT_1;                // frontRightMotor shares unit with frontLeftMotor
-	backLeftMotor.pwm.timer = MCPWM_TIMER_0;              // frontRightMotor shares timer with frontLeftMotor
-	backLeftMotor.pwm.opOut = MCPWM_OPR_A;               // frontRightMotor on operator 0 output B
-	backLeftMotor.pwm.signal = MCPWM0A;                  // needed for gpio_init
+	backLeftMotor.pwm.unit = MCPWM_UNIT_1;              // frontRightMotor shares unit with frontLeftMotor
+	backLeftMotor.pwm.timer = MCPWM_TIMER_0;            // frontRightMotor shares timer with frontLeftMotor
+	backLeftMotor.pwm.opOut = MCPWM_OPR_A;              // frontRightMotor on operator 0 output B
+	backLeftMotor.pwm.signal = MCPWM0A;                 // needed for gpio_init
 	backLeftMotor.pwm.pin = 15;		                    // pwm for frontLeftMotor on pin 23
-	backLeftMotor.encoder.pin = 12;                      // encoder input on pin 35
-	backLeftMotor.encoder.edgeCapture = MCPWM_POS_EDGE;  // capture positive edges
+	backLeftMotor.encoder.pin = 12;                     // encoder input on pin 35
+	backLeftMotor.encoder.edgeCapture = MCPWM_POS_EDGE; // capture positive edges
 	backLeftMotor.encoder.gpioNum = GPIO_NUM_12;        // gpio num should match pin num
 
 	// motor four configs
 	Motor_Settings backRightMotor;
-	backRightMotor.pwm.unit = backLeftMotor.pwm.unit;     // frontRightMotor shares unit with frontLeftMotor
-	backRightMotor.pwm.timer = backLeftMotor.pwm.timer;   // frontRightMotor shares timer with frontLeftMotor
-	backRightMotor.pwm.opOut = MCPWM_OPR_B;               // frontRightMotor on operator 0 output B
-	backRightMotor.pwm.signal = MCPWM0B;                  // needed for gpio_init
-	backRightMotor.pwm.pin = 2;			                  // pwm for frontLeftMotor on pin 23
-	backRightMotor.encoder.pin = 14;                      // encoder input on pin 35
-	backRightMotor.encoder.edgeCapture = MCPWM_POS_EDGE;  // capture positive edges
+	backRightMotor.pwm.unit = backLeftMotor.pwm.unit;    // frontRightMotor shares unit with frontLeftMotor
+	backRightMotor.pwm.timer = backLeftMotor.pwm.timer;  // frontRightMotor shares timer with frontLeftMotor
+	backRightMotor.pwm.opOut = MCPWM_OPR_B;              // frontRightMotor on operator 0 output B
+	backRightMotor.pwm.signal = MCPWM0B;                 // needed for gpio_init
+	backRightMotor.pwm.pin = 2;			                 // pwm for frontLeftMotor on pin 23
+	backRightMotor.encoder.pin = 14;                     // encoder input on pin 35
+	backRightMotor.encoder.edgeCapture = MCPWM_POS_EDGE; // capture positive edges
 	backRightMotor.encoder.gpioNum = GPIO_NUM_14;        // gpio num should match pin num
 
 	// config for pwm unit 0 timer 0 
@@ -299,9 +277,8 @@ void Main()
 	PWMSetup(backLeftMotor, &pwmconf);
 	PWMSetup(backRightMotor, &pwmconf);
 
-
 	// setup gpio pin 21 for rightDirection control
-	gpio_num_t dirPinRight = GPIO_NUM_4;
+	gpio_num_t rightDirection = GPIO_NUM_4;
 	gpio_config_t dirConfigRight;
 	dirConfigRight.intr_type = GPIO_INTR_DISABLE;
 	dirConfigRight.mode = GPIO_MODE_OUTPUT;
@@ -310,7 +287,7 @@ void Main()
 	dirConfigRight.pull_up_en = GPIO_PULLUP_ENABLE;
 
 	// setup gpio pin 4 for leftDirection control
-	gpio_num_t dirPinLeft = GPIO_NUM_21;
+	gpio_num_t leftDirection = GPIO_NUM_21;
 	gpio_config_t dirConfigLeft;
 	dirConfigLeft.intr_type = GPIO_INTR_DISABLE;
 	dirConfigLeft.mode = GPIO_MODE_OUTPUT;
@@ -321,12 +298,9 @@ void Main()
 	gpio_config(&dirConfigRight);
 	gpio_config(&dirConfigLeft);
 
-
-	// set gpio Forward for now
-	int rightDirection = Forward;
-	int leftDirection = rightDirection;
-	gpio_set_level(GPIO_NUM_21, leftDirection);
-	gpio_set_level(GPIO_NUM_4, rightDirection);
+	// set direction Forward for now
+	gpio_set_level(leftDirection, Forward);
+	gpio_set_level(rightDirection, Forward);
 
 	//// testing encoder readings
 	//uint encRead1 = 0;
@@ -334,7 +308,7 @@ void Main()
 	//uint encRead3 = 0;
 	//uint encRead4 = 0;
 
-	 //timer/encoder setup:
+	//timer/encoder setup:
 
 	//const int timerPrescale = 80;
 	//const int timerClk = 80000000 / timerPrescale;
@@ -380,7 +354,6 @@ void Main()
 	//int16_t enc_count3;
 	//int16_t enc_count4;
 
-
 	char* jessessidHOT = "Unhackable II";
 	const char* jessepasswordHOT = "plsdontguess";
 	char* jessessid = "Cappy";
@@ -390,7 +363,6 @@ void Main()
 	const char* webService = "https://thor.net.nait.ca/~jfederki/cmpe2500/Rc_Safety_Suite/Main%20Web/webservice.php";
 	const char* server = "thor.net.nait.ca";
 
-	//Serial.begin(115200);
 
 	WiFi.begin(timssid, timpassword);
 
@@ -404,51 +376,34 @@ void Main()
 	//Serial.print("Connected, IP address: ");
 	//Serial.println(WiFi.localIP());
 
-
-	unsigned int timeStamp = 1;
 	HTTPClient http;
 	http.begin(webService);
-	http.setReuse(true);
 
+	// Main Loop
 	for (;;) {
 
-		int angleIn = 0;			
-		int speedInPercent = 0;	
-										
-		//HTTPClient http;				
-		//Begin webservice call
-		//http.begin(webService);
+		/*HTTPClient http;
+		http.begin(webService);*/
 
-		//Also check if connected to the internet//	
 		if (WiFi.status() == WL_CONNECTED) {
 
-			//Add header to http POST
 			http.addHeader("Content-Type", "application/x-www-form-urlencoded");
 
 			int httpResponseCode = http.POST("action=GrabWebToCar&carID=1");
 
-			//If good call
 			if (httpResponseCode > 0)
 			{
 				//Load response data
 				String payload = http.getString();
-				//String payload = http->getString();
-
 
 				//Parse response into our boy jason
 				JSONVar jason = JSON.parse(payload);
 
-				//Get data if timestamp has changed
-				if (timeStamp != atoi(jason["timeStamp"]) && atoi(jason["timeStamp"]) != 0)
-				{
-					angleIn = atoi(jason["angleIn"]);
-					speedInPercent = atoi(jason["intendedSpeed"]);
-					timeStamp = atoi(jason["timeStamp"]);
+				int angleIn = atoi(jason["angleIn"]);
+				int speedIn = atoi(jason["intendedSpeed"]);
+				int timeStamp = atoi(jason["timeStamp"]);
 
-					//likely want to count missed pings here
-				}
-
-				MotorDuty motorData = SimpleSteering(angleIn, speedInPercent);
+				MotorDuty motorData = SimpleSteering(angleIn, speedIn);
 
 				//Set motor duty
 				mcpwm_set_duty(frontLeftMotor.pwm.unit, frontLeftMotor.pwm.timer, frontLeftMotor.pwm.opOut, motorData.frontLeftMotorDuty);
@@ -499,15 +454,5 @@ void Main()
 		//	intFlag = false;
 		//	portEXIT_CRITICAL(&timerMux);
 		//}
-
 	}
 }
-
-//timer ISR, trips a flag to use in main
-void IRAM_ATTR TimerInt()
-{
-	portENTER_CRITICAL_ISR(&timerMux);
-	intFlag = true;
-	portEXIT_CRITICAL_ISR(&timerMux);
-}
-

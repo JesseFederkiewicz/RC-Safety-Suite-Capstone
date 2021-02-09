@@ -104,6 +104,6 @@ typedef long pthread_cond_t;
 #define READ_PERI_REG(addr)
 // Write Value to Register
 #define WRITE_PERI_REG(addr,val)
-#include "WirelessMotorControl.ino"
+#include "MultiCoreTest.ino"
 #endif
 #endif
