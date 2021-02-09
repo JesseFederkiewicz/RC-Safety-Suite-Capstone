@@ -12,30 +12,18 @@
 #include "driver/pcnt.h"
 #include "arduino.h"
 
-volatile bool intFlag = false; // flag for use in main for actual code to run every interrupt interval
+// interrupt timer stuff:
 
+volatile bool intFlag = false; // flag for use in main for actual code to run every interrupt interval
 portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED; // used for syncing main and isr, ignore this red squiggle, still works
 
-// custom structs to hold several emuns that are needed for configs/inits/setting duty:
-
-typedef struct PWM_Settings {
-	int pin;                   // the GPIO pin for the pwm signal going to the H-bridge and motor
-	mcpwm_unit_t unit;         // the pwm unit that will control the motor
-	mcpwm_timer_t timer;       // the timer to use for the pwm operator
-	mcpwm_operator_t opOut;    // the pwm operator output to use with this motor
-	mcpwm_io_signals_t signal; // the specific pwm io signal
-};
-
-typedef struct Encoder_Settings {
-	int pin;                             // GPIO pin of the encoder input signal
-	mcpwm_capture_on_edge_t edgeCapture; // which edge detection to use, pos/neg
-};
-
-// bundle up each struct into a nice group for each motor
-typedef struct Motor_Settings {
-	PWM_Settings pwm;
-	Encoder_Settings encoder;
-};
+// timer ISR, trips a flag to use in main
+void IRAM_ATTR TimerInt()
+{
+	portENTER_CRITICAL_ISR(&timerMux);
+	intFlag = true;
+	portEXIT_CRITICAL_ISR(&timerMux);
+}
 
 // this setup will need to be run for each motor
 void PWMSetup(Motor_Settings m, mcpwm_config_t* unitConf)
@@ -47,10 +35,11 @@ void PWMSetup(Motor_Settings m, mcpwm_config_t* unitConf)
 	mcpwm_init(m.pwm.unit, m.pwm.timer, unitConf);
 }
 
-void PCNTSetup(Motor_Settings m1, Motor_Settings m2)
+// run this once for all motors
+void PCNTSetup(Motor_Settings m1, Motor_Settings m2, Motor_Settings m3, Motor_Settings m4)
 {
 	pcnt_config_t m1Enc;
-	m1Enc.pulse_gpio_num = m1.encoder.pin;   // Encoder input pin (GPIO32)
+	m1Enc.pulse_gpio_num = m1.encoder.pin;   // Encoder input pin (GPIO34)
 	m1Enc.ctrl_gpio_num = PCNT_PIN_NOT_USED; // control pin not used
 	m1Enc.unit = PCNT_UNIT_0;                // motor 1 encoder readings using pcnt unit 0
 	m1Enc.channel = PCNT_CHANNEL_0;          // using unit 0 channel 0
@@ -62,7 +51,7 @@ void PCNTSetup(Motor_Settings m1, Motor_Settings m2)
 	m1Enc.counter_l_lim = INT16_MIN;
 
 	pcnt_config_t m2Enc;
-	m2Enc.pulse_gpio_num = m2.encoder.pin;   // Encoder input pin (GPIO32)
+	m2Enc.pulse_gpio_num = m2.encoder.pin;   // Encoder input pin (GPIO35)
 	m2Enc.ctrl_gpio_num = PCNT_PIN_NOT_USED; // control pin not used
 	m2Enc.unit = PCNT_UNIT_1;				 // motor 2 encoder readings using pcnt unit 1
 	m2Enc.channel = PCNT_CHANNEL_0;          // using unit 1 channel 0
@@ -73,56 +62,122 @@ void PCNTSetup(Motor_Settings m1, Motor_Settings m2)
 	m2Enc.counter_h_lim = INT16_MAX;
 	m2Enc.counter_l_lim = INT16_MIN;
 
+	pcnt_config_t m3Enc;
+	m3Enc.pulse_gpio_num = m3.encoder.pin;   // Encoder input pin (GPIO12)
+	m3Enc.ctrl_gpio_num = PCNT_PIN_NOT_USED; // control pin not used
+	m3Enc.unit = PCNT_UNIT_2;                // motor 1 encoder readings using pcnt unit 0
+	m3Enc.channel = PCNT_CHANNEL_0;          // using unit 0 channel 0
+	m3Enc.pos_mode = PCNT_COUNT_INC;         // Count Rising-Edges and falling edges
+	m3Enc.neg_mode = PCNT_COUNT_INC;	     // 
+	m3Enc.lctrl_mode = PCNT_MODE_KEEP;       // Control mode: won't change counter mode
+	m3Enc.hctrl_mode = PCNT_MODE_KEEP;       // Control mode: won't change counter mode
+	m3Enc.counter_h_lim = INT16_MAX;
+	m3Enc.counter_l_lim = INT16_MIN;
+
+	pcnt_config_t m4Enc;
+	m4Enc.pulse_gpio_num = m4.encoder.pin;   // Encoder input pin (GPIO14)
+	m4Enc.ctrl_gpio_num = PCNT_PIN_NOT_USED; // control pin not used
+	m4Enc.unit = PCNT_UNIT_3;				 // motor 2 encoder readings using pcnt unit 1
+	m4Enc.channel = PCNT_CHANNEL_0;          // using unit 1 channel 0
+	m4Enc.pos_mode = PCNT_COUNT_INC;         // Count Rising-Edges and falling edges
+	m4Enc.neg_mode = PCNT_COUNT_INC;	     // 
+	m4Enc.lctrl_mode = PCNT_MODE_KEEP;       // Control mode: won't change counter mode
+	m4Enc.hctrl_mode = PCNT_MODE_KEEP;       // Control mode: won't change counter mode
+	m4Enc.counter_h_lim = INT16_MAX;
+	m4Enc.counter_l_lim = INT16_MIN;
+
 	pcnt_unit_config(&m1Enc);
 	pcnt_unit_config(&m2Enc);
+	pcnt_unit_config(&m3Enc);
+	pcnt_unit_config(&m4Enc);
 
 	// set pulse pcnt filters to filter unwanted noise
 	pcnt_set_filter_value(PCNT_UNIT_0, 250);
 	pcnt_filter_enable(PCNT_UNIT_0);
 	pcnt_set_filter_value(PCNT_UNIT_1, 250);
 	pcnt_filter_enable(PCNT_UNIT_1);
+	pcnt_set_filter_value(PCNT_UNIT_2, 250);
+	pcnt_filter_enable(PCNT_UNIT_2);
+	pcnt_set_filter_value(PCNT_UNIT_3, 250);
+	pcnt_filter_enable(PCNT_UNIT_3);
 
-	gpio_set_direction(GPIO_NUM_34, GPIO_MODE_INPUT);
-	gpio_set_direction(GPIO_NUM_35, GPIO_MODE_INPUT);
+	gpio_set_direction(m1.encoder.gpioNum, GPIO_MODE_INPUT);
+	gpio_set_direction(m2.encoder.gpioNum, GPIO_MODE_INPUT);
+	gpio_set_direction(m3.encoder.gpioNum, GPIO_MODE_INPUT);
+	gpio_set_direction(m4.encoder.gpioNum, GPIO_MODE_INPUT);
 
 	// enable pullup resistors
-	gpio_pullup_en(GPIO_NUM_34); 
-	gpio_pullup_en(GPIO_NUM_35); 
+	gpio_pullup_en(m1.encoder.gpioNum);
+	gpio_pullup_en(m2.encoder.gpioNum);
+	gpio_pullup_en(m3.encoder.gpioNum);
+	gpio_pullup_en(m4.encoder.gpioNum);
 
 	// enable pulldown resistors
-	gpio_pulldown_en(GPIO_NUM_34);
-	gpio_pulldown_en(GPIO_NUM_35);
+	gpio_pulldown_en(m1.encoder.gpioNum);
+	gpio_pulldown_en(m2.encoder.gpioNum);
+	gpio_pulldown_en(m3.encoder.gpioNum);
+	gpio_pulldown_en(m4.encoder.gpioNum);
 }
 
-// timer ISR, trips a flag to use in main
-void IRAM_ATTR TimerInt()
-{
-	portENTER_CRITICAL_ISR(&timerMux);
-	intFlag = true;
-	portEXIT_CRITICAL_ISR(&timerMux);
+const int _timerPrescale = 80;
+const int _timerClk = 80000000 / _timerPrescale;
+const int _intTriggerPeriod_ms = 50;
+
+float CalcRMP(uint encoderVal) {
+	/*
+		RPM = (encoder count)/(211.2 counts per revolution)*(60 rpm)*(2 [only using 1 encoder signal])*(_timerClk/intTriggerPeriodUs);
+		motor specs: https://www.pololu.com/product/4861
+	*/
+	return encoderVal / 211.2 * 120.0 * (float)(_timerClk / (_intTriggerPeriod_ms * 1000.0));
 }
 
 void Main()
 {
+	// Motor setups:
+
 	// motor one configs
-	Motor_Settings m1;
-	m1.pwm.unit = MCPWM_UNIT_0;               // m1 using pwm unit 0
-	m1.pwm.timer = MCPWM_TIMER_0;             // m1 using unit 0 timer 0
-	m1.pwm.opOut = MCPWM_OPR_A;               // m1 on operator 0 output A
-	m1.pwm.signal = MCPWM0A;                  // sort of the same as above, needed for gpio_init
-	m1.pwm.pin = 22;                          // pwm for m1 on pin 22
-	m1.encoder.pin = 34;                      // encoder input on pin 34
-	m1.encoder.edgeCapture = MCPWM_POS_EDGE;  // capture positive edges
+	Motor_Settings frontLeftMotor;
+	frontLeftMotor.pwm.unit = MCPWM_UNIT_0;              // frontLeftMotor using pwm unit 0
+	frontLeftMotor.pwm.timer = MCPWM_TIMER_0;            // frontLeftMotor using unit 0 timer 0
+	frontLeftMotor.pwm.opOut = MCPWM_OPR_A;              // frontLeftMotor on operator 0 output A
+	frontLeftMotor.pwm.signal = MCPWM0A;                 // sort of the same as above, needed for gpio_init
+	frontLeftMotor.pwm.pin = 22;                         // pwm for frontLeftMotor on pin 22
+	frontLeftMotor.encoder.pin = 34;                     // encoder input on pin 34
+	frontLeftMotor.encoder.edgeCapture = MCPWM_POS_EDGE; // capture positive edges
+	frontLeftMotor.encoder.gpioNum = GPIO_NUM_34;        // gpio num should match pin num
 
 	// motor two configs
-	Motor_Settings m2;
-	m2.pwm.unit = m1.pwm.unit;                // m2 shares unit with m1
-	m2.pwm.timer = m1.pwm.timer;              // m2 shares timer with m1
-	m2.pwm.opOut = MCPWM_OPR_B;               // m2 on operator 0 output B
-	m2.pwm.signal = MCPWM0B;                  // needed for gpio_init
-	m2.pwm.pin = 23;		                  // pwm for m1 on pin 23
-	m2.encoder.pin = 35;                      // encoder input on pin 35
-	m2.encoder.edgeCapture = MCPWM_POS_EDGE;  // capture positive edges
+	Motor_Settings frontRightMotor;
+	frontRightMotor.pwm.unit = frontLeftMotor.pwm.unit;   // frontRightMotor shares unit with frontLeftMotor
+	frontRightMotor.pwm.timer = frontLeftMotor.pwm.timer; // frontRightMotor shares timer with frontLeftMotor
+	frontRightMotor.pwm.opOut = MCPWM_OPR_B;              // frontRightMotor on operator 0 output B
+	frontRightMotor.pwm.signal = MCPWM0B;                 // needed for gpio_init
+	frontRightMotor.pwm.pin = 23;		                  // pwm for frontLeftMotor on pin 23
+	frontRightMotor.encoder.pin = 35;                     // encoder input on pin 35
+	frontRightMotor.encoder.edgeCapture = MCPWM_POS_EDGE; // capture positive edges
+	frontRightMotor.encoder.gpioNum = GPIO_NUM_35;        // gpio num should match pin num
+
+	// motor three configs
+	Motor_Settings backLeftMotor;
+	backLeftMotor.pwm.unit = MCPWM_UNIT_1;              // frontRightMotor shares unit with frontLeftMotor
+	backLeftMotor.pwm.timer = MCPWM_TIMER_0;            // frontRightMotor shares timer with frontLeftMotor
+	backLeftMotor.pwm.opOut = MCPWM_OPR_A;              // frontRightMotor on operator 0 output B
+	backLeftMotor.pwm.signal = MCPWM0A;                 // needed for gpio_init
+	backLeftMotor.pwm.pin = 15;		                    // pwm for frontLeftMotor on pin 15
+	backLeftMotor.encoder.pin = 12;                     // encoder input on pin 12
+	backLeftMotor.encoder.edgeCapture = MCPWM_POS_EDGE; // capture positive edges
+	backLeftMotor.encoder.gpioNum = GPIO_NUM_12;        // gpio num should match pin num
+
+	// motor four configs
+	Motor_Settings backRightMotor;
+	backRightMotor.pwm.unit = backLeftMotor.pwm.unit;    // frontRightMotor shares unit with frontLeftMotor
+	backRightMotor.pwm.timer = backLeftMotor.pwm.timer;  // frontRightMotor shares timer with frontLeftMotor
+	backRightMotor.pwm.opOut = MCPWM_OPR_B;              // frontRightMotor on operator 0 output B
+	backRightMotor.pwm.signal = MCPWM0B;                 // needed for gpio_init
+	backRightMotor.pwm.pin = 2;			                 // pwm for frontLeftMotor on pin 2
+	backRightMotor.encoder.pin = 14;                     // encoder input on pin 14
+	backRightMotor.encoder.edgeCapture = MCPWM_POS_EDGE; // capture positive edges
+	backRightMotor.encoder.gpioNum = GPIO_NUM_14;        // gpio num should match pin num
 
 	// config for pwm unit 0 timer 0 
 	mcpwm_config_t pwmconf;
@@ -132,20 +187,44 @@ void Main()
 	pwmconf.cmpr_a = 0;						 // initial duty of 0
 	pwmconf.cmpr_b = 0;
 
-	const int timerPrescale = 80;
-	const int timerClk = 80000000 / timerPrescale;
-	const int intTriggerPeriod_ms = 50;
-
 	// run setup for each motor
-	PWMSetup(m1, &pwmconf);
-	PWMSetup(m2, &pwmconf);
+	PWMSetup(frontLeftMotor, &pwmconf);
+	PWMSetup(frontRightMotor, &pwmconf);
+	PWMSetup(backLeftMotor, &pwmconf);
+	PWMSetup(backRightMotor, &pwmconf);
 
-	mcpwm_set_duty(m1.pwm.unit, m1.pwm.timer, m1.pwm.opOut, 100);
-	mcpwm_set_duty(m2.pwm.unit, m2.pwm.timer, m2.pwm.opOut, 50);
+	// Encoder Setups:
 
-	PCNTSetup(m1, m2);
+	PCNTSetup(frontLeftMotor, frontRightMotor, backLeftMotor, backRightMotor);
 
-	Serial.begin(115200);
+	// Direction controls:
+
+	// setup gpio pin 21 for rightDirection control
+	gpio_num_t rightDirectionControl = GPIO_NUM_21;
+	gpio_config_t dirConfigRight;
+	dirConfigRight.intr_type = GPIO_INTR_DISABLE;
+	dirConfigRight.mode = GPIO_MODE_OUTPUT;
+	dirConfigRight.pin_bit_mask = 0b1000000000000000000000; // bit #21 for pin 21
+	dirConfigRight.pull_down_en = GPIO_PULLDOWN_ENABLE;
+	dirConfigRight.pull_up_en = GPIO_PULLUP_ENABLE;
+
+	// setup gpio pin 4 for leftDirection control
+	gpio_num_t leftDirectionControl = GPIO_NUM_4;
+	gpio_config_t dirConfigLeft;
+	dirConfigLeft.intr_type = GPIO_INTR_DISABLE;
+	dirConfigLeft.mode = GPIO_MODE_OUTPUT;
+	dirConfigLeft.pin_bit_mask = 0b10000 ; // bit #4 for pin 4
+	dirConfigLeft.pull_down_en = GPIO_PULLDOWN_ENABLE;
+	dirConfigLeft.pull_up_en = GPIO_PULLUP_ENABLE;
+
+	gpio_config(&dirConfigRight);
+	gpio_config(&dirConfigLeft);
+
+	// set direction Forward for now
+	gpio_set_level(rightDirectionControl, 0);
+	gpio_set_level(leftDirectionControl, 1);
+
+	// Timer configs	
 
 	hw_timer_t* timer = NULL;
 
@@ -156,7 +235,7 @@ void Main()
 		Third Param:	Count mode (true) count up mode.
 		Return:			hw_timer_t (timer)
 	 */
-	timer = timerBegin(0, timerPrescale, true);
+	timer = timerBegin(0, _timerPrescale, true);
 
 	/*
 		Attach Timer to ISR
@@ -172,7 +251,7 @@ void Main()
 		Second Param:	Timer counter value when interupt triggers, currently triggering every 1s (1000000) (1Mhz / 1000000)
 		Third Param:	Reset interrupt flag and timer counter (true)
 	*/
-	timerAlarmWrite(timer, intTriggerPeriod_ms *1000, true);
+	timerAlarmWrite(timer, _intTriggerPeriod_ms * 1000, true);
 
 	/*
 		Enable alarm (interrupt)
@@ -180,31 +259,56 @@ void Main()
 	*/
 	timerAlarmEnable(timer);
 
-	int16_t enc_count1;
-	int16_t enc_count2;
+	mcpwm_set_duty(frontLeftMotor.pwm.unit, frontLeftMotor.pwm.timer, frontLeftMotor.pwm.opOut, 50);
+	mcpwm_set_duty(frontRightMotor.pwm.unit, frontRightMotor.pwm.timer, frontRightMotor.pwm.opOut, 50);
+	mcpwm_set_duty(backLeftMotor.pwm.unit, backLeftMotor.pwm.timer, backLeftMotor.pwm.opOut, 50);
+	mcpwm_set_duty(backRightMotor.pwm.unit, backRightMotor.pwm.timer, backRightMotor.pwm.opOut, 50);
+
+	Serial.begin(115200);
+
+	int16_t fl_Enc;
+	int16_t fr_Enc;
+	int16_t bl_Enc;
+	int16_t br_Enc;
 
 	for (;;)
 	{
 		// currently reading values every second with interrupt timer
 		if (intFlag)
 		{
-			/*
-				RPM = (encoder count)/(211.2 counts per revolution)*(60 rpm)*(2 (only using 1 encoder signal))*(timerClk/intTriggerPeriodUs); 
-				motor specs: https://www.pololu.com/product/4861
-			*/
-			pcnt_get_counter_value(PCNT_UNIT_0, &enc_count1);
-			pcnt_get_counter_value(PCNT_UNIT_1, &enc_count2);
+			pcnt_get_counter_value(PCNT_UNIT_0, &fl_Enc);
+			pcnt_get_counter_value(PCNT_UNIT_1, &fr_Enc);
+			pcnt_get_counter_value(PCNT_UNIT_2, &bl_Enc);
+			pcnt_get_counter_value(PCNT_UNIT_3, &br_Enc);
 
+			Serial.print("FL enc:");
+			Serial.println(fl_Enc);
 			Serial.print("RPM1:");
+			Serial.println(CalcRMP(fl_Enc));
+			Serial.println();
 
-			Serial.println((float)enc_count1 / 211.2 * 120.0 * (float)(timerClk / intTriggerPeriod_ms));
-
+			Serial.print("FR enc:");
+			Serial.println(fr_Enc);
 			Serial.print("RPM2:");
+			Serial.println(CalcRMP(fr_Enc));
+			Serial.println();
 
-			Serial.println((float)enc_count2 / 211.2 * 120.0 * (float)(timerClk / intTriggerPeriod_ms));
+			Serial.print("BL enc:");
+			Serial.println(bl_Enc);
+			Serial.print("RPM3:");
+			Serial.println(CalcRMP(bl_Enc));
+			Serial.println();
+
+			Serial.print("BR enc:");
+			Serial.println(br_Enc);
+			Serial.print("RPM4:");
+			Serial.println(CalcRMP(br_Enc));
+			Serial.println();
 
 			pcnt_counter_clear(PCNT_UNIT_0);
 			pcnt_counter_clear(PCNT_UNIT_1);
+			pcnt_counter_clear(PCNT_UNIT_2);
+			pcnt_counter_clear(PCNT_UNIT_3);
 
 			portENTER_CRITICAL(&timerMux);
 			intFlag = false;
