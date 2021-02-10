@@ -16,18 +16,6 @@
 #include "arduino.h"
 #include "driver/pcnt.h"
 
-//// timer interrupt stuff
-static volatile bool intFlag = false; // flag for use in main for actual code to run every interrupt interval
-portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED; // used for syncing main and isr, ignore this red squiggle, still works
-
-//timer ISR, trips a flag to use in main
-void IRAM_ATTR TimerInt()
-{
-	portENTER_CRITICAL_ISR(&timerMux);
-	intFlag = true;
-	portEXIT_CRITICAL_ISR(&timerMux);
-}
-
 // this setup will need to be run for each motor
 void PWMSetup(Motor_Settings m, mcpwm_config_t* unitConf)
 {
@@ -217,8 +205,7 @@ MotorDuty SimpleSteering(int angle, int speedIn)
 }
 
 void Main()
-{
-
+{	
 	// motor one configs
 	Motor_Settings frontLeftMotor;
 	frontLeftMotor.pwm.unit = MCPWM_UNIT_0;              // frontLeftMotor using pwm unit 0
@@ -300,59 +287,7 @@ void Main()
 
 	// set direction Forward for now
 	gpio_set_level(leftDirection, Forward);
-	gpio_set_level(rightDirection, Forward);
-
-	//// testing encoder readings
-	//uint encRead1 = 0;
-	//uint encRead2 = 0;
-	//uint encRead3 = 0;
-	//uint encRead4 = 0;
-
-	//timer/encoder setup:
-
-	//const int timerPrescale = 80;
-	//const int timerClk = 80000000 / timerPrescale;
-	//const int intTriggerPeriod_ms = 50;
-
-	//PCNTSetup(frontLeftMotor, frontRightMotor, backLeftMotor, backRightMotor);
-
-	//hw_timer_t* timer = NULL;
-
-	///*
-	//	set up initial timer configs
-	//	First Param:	What timer to use (0)
-	//	Second Param:	Prescale (80) allows 1Mhz clock
-	//	Third Param:	Count mode (true) count up mode.
-	//	Return:			hw_timer_t (timer)
-	// */
-	//timer = timerBegin(0, timerPrescale, true);
-
-	///*
-	//	Attach Timer to ISR
-	//	First Param:	Which timer, hw_timer_t (timer)
-	//	Second Param:	Callback method for ISR (TimerInt)
-	//	Third Param:	Edge: (true)
-	//*/
-	//timerAttachInterrupt(timer, &TimerInt, true);
-
-	///*
-	//	How often to trigger alarm
-	//	First Param:	Which timer, hw_timer_t (timer)
-	//	Second Param:	Timer counter value when interupt triggers, currently triggering every 1s (1000000) (1Mhz / 1000000)
-	//	Third Param:	Reset interrupt flag and timer counter (true)
-	//*/
-	//timerAlarmWrite(timer, intTriggerPeriod_ms * 1000, true);
-
-	///*
-	//	Enable alarm (interrupt)
-	//	First Param:	Which timer, hw_timer_t (timer)
-	//*/
-	//timerAlarmEnable(timer);
-
-	//int16_t enc_count1;
-	//int16_t enc_count2;
-	//int16_t enc_count3;
-	//int16_t enc_count4;
+	gpio_set_level(rightDirection, Forward);	
 
 	char* jessessidHOT = "Unhackable II";
 	const char* jessepasswordHOT = "plsdontguess";
@@ -420,39 +355,5 @@ void Main()
 		}
 
 		//http.end();
-
-		//// currently reading values every second with interrupt timer
-		//if (intFlag)
-		//{
-		//	/*
-		//		RPM = (encoder count)/(211.2 counts per revolution)*(60 rpm)*(2 (only using 1 encoder signal))*(timerClk/intTriggerPeriodUs);
-		//		motor specs: https://www.pololu.com/product/4861
-		//	*/
-		//	pcnt_get_counter_value(PCNT_UNIT_0, &enc_count1);
-		//	pcnt_get_counter_value(PCNT_UNIT_1, &enc_count2);
-		//	pcnt_get_counter_value(PCNT_UNIT_2, &enc_count3);
-		//	pcnt_get_counter_value(PCNT_UNIT_3, &enc_count4);
-
-		//	//Serial.print("RPM1:");
-		//	//Serial.println((float)enc_count1 / 211.2 * 120.0 * (float)(timerClk / intTriggerPeriod_ms));
-
-		//	//Serial.print("RPM2:");
-		//	//Serial.println((float)enc_count2 / 211.2 * 120.0 * (float)(timerClk / intTriggerPeriod_ms));
-
-		//	//Serial.print("RPM3:");
-		//	//Serial.println((float)enc_count3 / 211.2 * 120.0 * (float)(timerClk / intTriggerPeriod_ms));
-
-		//	//Serial.print("RPM4:");
-		//	//Serial.println((float)enc_count4 / 211.2 * 120.0 * (float)(timerClk / intTriggerPeriod_ms));
-
-		//	pcnt_counter_clear(PCNT_UNIT_0);
-		//	pcnt_counter_clear(PCNT_UNIT_1);
-		//	pcnt_counter_clear(PCNT_UNIT_2);
-		//	pcnt_counter_clear(PCNT_UNIT_3);
-
-		//	portENTER_CRITICAL(&timerMux);
-		//	intFlag = false;
-		//	portEXIT_CRITICAL(&timerMux);
-		//}
 	}
 }
