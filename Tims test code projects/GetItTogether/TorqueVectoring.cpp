@@ -18,12 +18,6 @@ void SimpleSteering(int angle, uint speedIn)
 	MotorDirection leftDir;
 	MotorDirection rightDir;
 
-	//Serial.println("Into MotorDuty");
-	//Serial.print("angle");
-	//Serial.println(angle);
-	//Serial.print("speed");
-	//Serial.println(speed);
-
 	duties.FL_Duty = speed;
 	duties.FR_Duty = speed;
 	duties.BL_Duty = speed;

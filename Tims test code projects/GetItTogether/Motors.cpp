@@ -35,7 +35,7 @@ void InitMotors()
 	BL_PWM.timer = MCPWM_TIMER_0; // Back Left using unit 1 timer 0
 	BL_PWM.opOut = MCPWM_OPR_A;   // Back Left on operator 0 output A
 	BL_PWM.signal = MCPWM0A;      // needed for gpio_init
-	BL_PWM.pin = 15;		      // pwm for Back Left on pin 15
+	BL_PWM.pin = 16;		      // pwm for Back Left on pin 16
 
 	// motor four configs
 	BR_PWM.unit = BL_PWM.unit;   // Back Right shares unit with Back Left
