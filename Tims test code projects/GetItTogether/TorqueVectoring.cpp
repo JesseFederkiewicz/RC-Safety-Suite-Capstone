@@ -1,5 +1,6 @@
 // 
-// 
+// File: TorqueVectoring.cpp
+// Authors: Tim Hachey/Jesse Federkiewicz
 // 
 
 #include "TorqueVectoring.h"

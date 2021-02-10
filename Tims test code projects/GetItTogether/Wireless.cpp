@@ -1,18 +1,18 @@
 // 
-// 
+// File: Wireless.cpp
+// Authors: Tim Hachey/Jesse Federkiewicz
 // 
 
 #include "Wireless.h"
 
-HTTPClient client;
-int _lossPings = 0;
+HTTPClient client; // used in GrabData to get data from the database, initialized in InitWiFi()
 
 void InitWiFi() 
 {
-	char* jessessidHOT = "Unhackable II";
-	const char* jessepasswordHOT = "plsdontguess";
-	char* jessessid = "Cappy";
-	const char* jessepassword = "ThisIs@nAdequateP@ss123";
+	//char* jessessidHOT = "Unhackable II";
+	//const char* jessepasswordHOT = "plsdontguess";
+	//char* jessessid = "Cappy";
+	//const char* jessepassword = "ThisIs@nAdequateP@ss123";
 	char* timssid = "hachey wifi";
 	const char* timpassword = "38hachey";
 	const char* webService = "https://coolstuffliveshere.com/Hobby_Projects/Rc_Safety_Suite/Main%20Web/webservice.php";
@@ -34,6 +34,7 @@ void InitWiFi()
 
 String GrabData()
 {
+	int _lossPings = 0;
 	int httpCode = -1;
 	String payload = "";
 

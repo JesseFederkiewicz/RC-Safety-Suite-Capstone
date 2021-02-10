@@ -1,5 +1,6 @@
 // 
-// 
+// File: Main.cpp
+// Authors: Tim Hachey/Jesse Federkiewicz
 // 
 
 #include "Main.h"
@@ -63,7 +64,7 @@ void Core0Loop(void* param)
 // Main runs on core 1
 void Main()
 {
-	Serial.begin(115200);
+	//Serial.begin(115200);
 
 	// call all Inits
 	InitMotors();
@@ -92,11 +93,11 @@ void Main()
 		{
 			rpms = GetRPMS();
 
-			Serial.println("RPMs:");
+			/*Serial.println("RPMs:");
 			Serial.printf("LF: %f\n", rpms.FL_RPM);
 			Serial.printf("RF: %f\n", rpms.FR_RPM);
 			Serial.printf("LR: %f\n", rpms.BL_RPM);
-			Serial.printf("RR: %f\n", rpms.BR_RPM);
+			Serial.printf("RR: %f\n", rpms.BR_RPM);*/
 
 			portENTER_CRITICAL(&timerMux);
 			intFlag = false;
