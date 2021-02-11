@@ -56,7 +56,7 @@ void setup() {
 
 	// Once ESPNow is successfully Init, we will register for Send CB to
 	// get the status of Trasnmitted packet
-	//esp_now_register_send_cb(OnDataSent);
+	esp_now_register_send_cb(OnDataSent);
 
 	// Register peer
 	esp_now_peer_info_t peerInfo;
@@ -86,5 +86,5 @@ void loop() {
 	else {
 		Serial.println("Error sending the data");
 	}
-	delay(10000);
+	delay(1000);
 }

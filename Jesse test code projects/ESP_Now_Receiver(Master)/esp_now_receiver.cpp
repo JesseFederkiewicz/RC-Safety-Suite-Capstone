@@ -45,14 +45,14 @@ void Main()
 
 	Serial.println("Done esp init");
 
-	char* jesseSsid = "Cappy";
-	char* jessePass = "ThisIs@nAdequateP@ss123";
+	//char* jesseSsid = "Cappy";
+	//char* jessePass = "ThisIs@nAdequateP@ss123";
 
-	WiFi.begin(jesseSsid, jessePass);
+	//WiFi.begin(jesseSsid, jessePass);
 
-	while (WiFi.status() != WL_CONNECTED);
+	//while (WiFi.status() != WL_CONNECTED);
 
-	Serial.println("Wifi Connected");
+	//Serial.println("Wifi Connected");
 
 	// Once ESPNow is successfully Init, we will register for recv CB to
 	// get recv packer info
