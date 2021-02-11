@@ -1,6 +1,3 @@
-// 
-// 
-// 
 
 #include "esp_now_receiver.h"
 #include "esp_now_receiver.h"
@@ -29,13 +26,13 @@ void DataReceived(const uint8_t* mac, const uint8_t* data, int len) {
 	Serial.println(receivedData.t);
 }
 
-void Main() 
+void Main()
 {
 	// Initialize Serial Monitor
 	Serial.begin(115200);
 
 	// Set device as a Wi-Fi Station
-	WiFi.mode(WIFI_AP_STA);
+	WiFi.mode(WIFI_STA);	//can be WiFi_AP_STA
 
 	// Init ESP-NOW
 	if (esp_now_init() != ESP_OK) {
