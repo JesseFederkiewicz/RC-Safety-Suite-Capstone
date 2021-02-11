@@ -672,7 +672,7 @@ void Main()
 	{
 		if (WiFi.status() == WL_CONNECTED)
 		{
-			GrabData(true);
+			//GrabData(true);
 
 			MotorDuty motorData = SimpleSteering();
 
