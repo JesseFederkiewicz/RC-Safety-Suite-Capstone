@@ -1,5 +1,6 @@
 // 
-// 
+// File: TorqueVectoring.cpp
+// Authors: Tim Hachey/Jesse Federkiewicz
 // 
 
 #include "TorqueVectoring.h"
@@ -16,12 +17,6 @@ void SimpleSteering(int angle, uint speedIn)
 	MotorDuties duties;
 	MotorDirection leftDir;
 	MotorDirection rightDir;
-
-	//Serial.println("Into MotorDuty");
-	//Serial.print("angle");
-	//Serial.println(angle);
-	//Serial.print("speed");
-	//Serial.println(speed);
 
 	duties.FL_Duty = speed;
 	duties.FR_Duty = speed;
