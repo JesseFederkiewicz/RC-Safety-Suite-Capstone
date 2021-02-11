@@ -13,6 +13,7 @@ typedef struct Encoder_Settings {
 	int pin;                             // GPIO pin of the encoder input signal
 	gpio_num_t gpioNum;                  // gpio num
 	mcpwm_capture_on_edge_t edgeCapture; // which edge detection to use, pos/neg
+	pcnt_unit_t pcntUnit;                // which PCNT unit will the encoder input to
 };
 
 typedef struct RPMS {

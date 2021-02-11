@@ -1,32 +1,41 @@
 // 
-// 
+// File: Wireless.cpp
+// Authors: Tim Hachey/Jesse Federkiewicz
 // 
 
 #include "Wireless.h"
 
-HTTPClient client;
-int _lossPings = 0;
+HTTPClient client; // used in GrabData to get data from the database, initialized in InitWiFi()
 
 void InitWiFi() 
 {
-	char* jessessidHOT = "Unhackable II";
-	const char* jessepasswordHOT = "plsdontguess";
-	char* jessessid = "Cappy";
-	const char* jessepassword = "ThisIs@nAdequateP@ss123";
-	char* timssid = "hachey wifi";
-	const char* timpassword = "38hachey";
-	const char* webService = "https://coolstuffliveshere.com/Hobby_Projects/Rc_Safety_Suite/Main%20Web/webservice.php";
+	const char* webService = "https://coolstuffliveshere.com/Rc_Safety_Suite/Main_Web/webservice.php";
+	//const char* webService = "https://thor.net.nait.ca/~jfederki/cmpe2500/Rc_Safety_Suite/Main%20Web/webservice.php";
 
-	WiFi.begin(jessessid, jessepassword);
+	//char* jessessidHOT = "Unhackable II";
+	//const char* jessepasswordHOT = "plsdontguess";
+	//WiFi.begin(jessessidHOT, jessepasswordHOT);
 
-	//Serial.print("Connecting");
+	//char* jessessid = "Cappy";
+	//const char* jessepassword = "ThisIs@nAdequateP@ss123";
+	//WiFi.begin(jessessid, jessepassword);
+		
+	char* timsHotssid = "tims wifi";
+	const char* timsHotpassword = "whatpassword";
+	char* jesseSsid = "Cappy";
+	char* jessePass = "ThisIs@nAdequateP@ss123"
+	WiFi.begin(timsHotssid, timsHotpassword);
 
+	//char* timssid = "hachey wifi 2.4 GHz";
+	//const char* timpassword = "38hachey";
+	//WiFi.begin(timssid, timpassword);
+
+	//Serial.println("Connecting");
+	//Serial.printf("status: %d", WiFi.status());
 	while (WiFi.status() != WL_CONNECTED) {
-		//delay(200);
-		//Serial.print(".");
+		//delay(250);	
 	}
-	//Serial.println();
-	//Serial.print("Connected, IP address: ");
+	//Serial.println("Connected, IP address: ");
 	//Serial.println(WiFi.localIP());
 
 	client.begin(webService);
@@ -34,18 +43,18 @@ void InitWiFi()
 
 String GrabData()
 {
+	int _lossPings = 0;
 	int httpCode = -1;
 	String payload = "";
 
 	client.addHeader("Content-Type", "application/x-www-form-urlencoded");
 	httpCode = client.POST("action=GrabWebToCar&carID=1");
 
-
 	// file found at server
 	if (httpCode == HTTP_CODE_OK)
 	{
 		// create buffer for read
-		uint8_t buff[50] = { 0 };
+		uint8_t buff[40] = { 0 };
 
 		WiFiClient* stream;
 
@@ -63,7 +72,6 @@ String GrabData()
 
 			for (int i = 0; i < charPos; i++)
 			{
-				//Serial.println(buff[i]);
 				if (buff[i] == '{' || inPayload)
 				{
 					inPayload = true;
@@ -104,7 +112,7 @@ String GrabData()
 				_timeStamp = 0;*/
 				return "-1";
 			}
-		}
+		}		
 		return payload;
 	}
 }

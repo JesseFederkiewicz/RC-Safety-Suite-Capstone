@@ -1,5 +1,6 @@
 // 
-// 
+// File: Main.cpp
+// Authors: Tim Hachey/Jesse Federkiewicz
 // 
 
 #include "Main.h"
@@ -25,33 +26,36 @@ int _timeStamp = 1;
 //  updating the values used for driving/steering
 void Core0Loop(void* param)
 {
-	for (;;) 
+	for (;;)
 	{
 		if (WiFi.status() == WL_CONNECTED)
 		{
 			String payload = GrabData();
 
-			if (payload == "-1") {
+			if (payload == "-1" || payload == "" || payload == " ")
+			{
 				_intendedAngle = 0;
 				_intendedSpeed = 0;
 				_timeStamp = 0;
 			}
-
-			//Serial.println(payload);
-
-			//Parse response into our boy jason
-			JSONVar jason = JSON.parse(payload);
-
-			//Get data if timestamp has changed
-			if (_timeStamp != atoi(jason["t"]) && atoi(jason["t"]) != 0)
+			else
 			{
-				_intendedAngle = atoi(jason["a"]);
-				_intendedSpeed = atoi(jason["s"]);
-				_timeStamp = atoi(jason["t"]);
+				//Parse response into our boy jason
+				JSONVar jason = JSON.parse(payload);
 
-				//Serial.println(_intendedAngle);
-				//Serial.println(_intendedSpeed);
-				//Serial.println(_timeStamp);
+				//Get data if timestamp has changed
+				int tempStamp = atoi(jason["t"]);
+
+				if (_timeStamp != tempStamp && tempStamp != 0)
+				{
+					_intendedAngle = atoi(jason["a"]);
+					_intendedSpeed = atoi(jason["s"]);
+					_timeStamp = tempStamp;
+
+					//Serial.println(_intendedAngle);
+					//Serial.println(_intendedSpeed);
+					//Serial.println(_timeStamp);
+				}
 			}
 		}
 		else {
@@ -63,32 +67,32 @@ void Core0Loop(void* param)
 // Main runs on core 1
 void Main()
 {
-	Serial.begin(115200);
+	//Serial.begin(115200);
 
 	// call all Inits
+	InitWiFi();
 	InitMotors();
 	InitEncoders();
 	TimerInterruptInit(TimerInt);
-	InitWiFi();
 
 	// assign loop function for core 0
-	TaskHandle_t core0Task;
+	TaskHandle_t core0Task; // task handle for core 0 task
 	xTaskCreatePinnedToCore(
-		Core0Loop,   /* Function to implement the task */
+		Core0Loop,   /* Function to run on core 0*/
 		"core0Task", /* Name of the task */
 		10000,       /* Stack size in words */
 		NULL,        /* Task input parameter */
 		0,           /* Priority of the task */
 		&core0Task,  /* Task handle. */
 		0);          /* Core where the task should run */
-		
+
 	RPMS rpms;
 
-	for (;;) 
+	for (;;)
 	{
 		SimpleSteering(_intendedAngle, _intendedSpeed);
 
-		if (intFlag) 
+		if (intFlag)
 		{
 			rpms = GetRPMS();
 
