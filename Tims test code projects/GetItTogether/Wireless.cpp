@@ -29,7 +29,6 @@ void InitWiFi()
 	//WiFi.begin(timssid, timpassword);
 
 	//Serial.println("Connecting");
-	//Serial.printf("status: %d", WiFi.status());
 	while (WiFi.status() != WL_CONNECTED) {
 		//delay(250);	
 	}

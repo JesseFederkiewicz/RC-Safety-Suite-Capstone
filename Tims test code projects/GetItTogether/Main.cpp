@@ -31,7 +31,7 @@ void Core0Loop(void* param)
 		if (WiFi.status() == WL_CONNECTED)
 		{
 			String payload = GrabData();
-
+			//Serial.println(payload);
 			if (payload == "-1" || payload == "" || payload == " ")
 			{
 				_intendedAngle = 0;
@@ -89,22 +89,16 @@ void Main()
 	RPMS rpms;
 
 	for (;;)
-	{
-		SimpleSteering(_intendedAngle, _intendedSpeed);
-
+	{		
 		if (intFlag)
 		{
 			rpms = GetRPMS();
-
-			//Serial.println("RPMs:");
-			//Serial.printf("LF: %f\n", rpms.FL_RPM);
-			//Serial.printf("RF: %f\n", rpms.FR_RPM);
-			//Serial.printf("LR: %f\n", rpms.BL_RPM);
-			//Serial.printf("RR: %f\n", rpms.BR_RPM);
 
 			portENTER_CRITICAL(&timerMux);
 			intFlag = false;
 			portEXIT_CRITICAL(&timerMux);
 		}
+		//SimpleSteering(_intendedAngle, _intendedSpeed);
+		DrivingWithBrakesAndSteering(_intendedAngle, _intendedSpeed, rpms);
 	}
 }
