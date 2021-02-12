@@ -104,7 +104,7 @@ void DrivingWithBrakesAndSteering(int angle, uint speedRequest, RPMS rpm)
 	// BRAKES
 
 	// if stop is requested and any wheel is turning
-	if (speedSet == 0 && (rpm.BL_RPM > 0 || rpm.BR_RPM > 0 || rpm.FL_RPM > 0 || rpm.FR_RPM > 0))
+	if (speedSet == 0 && (rpm.BL_RPM > 10 || rpm.BR_RPM > 10 || rpm.FL_RPM > 10 || rpm.FR_RPM > 10))
 	{
 		//Serial.println("braking");		
 
@@ -128,6 +128,11 @@ void DrivingWithBrakesAndSteering(int angle, uint speedRequest, RPMS rpm)
 			leftDir = Forward;
 			rightDir = Forward;
 			vehicleDir = forward;
+			break;
+
+			// vehicle is stopped, no change
+		case stopped:
+			brakeSpeed = 0;
 			break;
 		}
 		duties.FL_Duty = brakeSpeed;
