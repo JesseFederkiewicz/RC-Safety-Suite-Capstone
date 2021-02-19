@@ -21,12 +21,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Encoders.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Motors.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -34,6 +28,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="TorqueVectoring.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Encoders.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

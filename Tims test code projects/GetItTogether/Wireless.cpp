@@ -20,17 +20,31 @@ void InitWiFi()
 	//const char* jessepassword = "ThisIs@nAdequateP@ss123";
 	//WiFi.begin(jessessid, jessepassword);
 		
-	char* timsHotssid = "tims wifi";
+	const char* timsHotssid = "tims wifi";
 	const char* timsHotpassword = "whatpassword";
-	WiFi.begin(timsHotssid, timsHotpassword);
+	const char* jesseSsid = "Cappy";
+	const char* jessePass = "ThisIs@nAdequateP@ss123";
+	WiFi.begin(jesseSsid, jessePass);
 
 	//char* timssid = "hachey wifi 2.4 GHz";
 	//const char* timpassword = "38hachey";
 	//WiFi.begin(timssid, timpassword);
+	int connectionCounter = 0;
 
 	//Serial.println("Connecting");
 	while (WiFi.status() != WL_CONNECTED) {
-		//delay(250);	
+		delay(250);
+		connectionCounter++;
+
+		if (connectionCounter > 5)
+		{
+			WiFi.disconnect();
+			WiFi.begin(timsHotssid, timsHotpassword);
+
+			while (WiFi.status() != WL_CONNECTED) {
+				delay(250);
+			}
+		}
 	}
 	//Serial.println("Connected, IP address: ");
 	//Serial.println(WiFi.localIP());

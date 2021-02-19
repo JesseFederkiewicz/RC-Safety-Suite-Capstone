@@ -14,6 +14,8 @@ Encoder_Settings FR_Encoder;
 Encoder_Settings BL_Encoder;
 Encoder_Settings BR_Encoder;
 
+///likely issue here with encoders
+
 void InitEncoders()
 {
 	FL_Encoder.pin = 34;                     // Front Left encoder input on pin 34
@@ -158,10 +160,10 @@ void TimerInterruptInit(void (*intFunc) (void))
 // calculates motor rpm based on encoder readings
 // RPM = (encoder count)/(211.2 counts per revolution)*(60 rpm)*(2 [only using 1 encoder signal])*(_timerClk/intTriggerPeriodUs);	
 // motor specs: https://www.pololu.com/product/4861
-float CalcRMP(uint encoderVal) 
-{	
-	const int _timerClk = 80000000 / _timerPrescale;
-	return encoderVal / 211.2 * 120.0 * (float)(_timerClk / (_intTriggerPeriod_ms * 1000.0));
+float CalcRMP(uint encoderVal)
+{
+	const int timerClk = 80000000 / _timerPrescale;
+	return encoderVal / 211.2 * 120.0 * (float)(timerClk / (_intTriggerPeriod_ms * 1000.0));
 }
 
 // reads all encoder values from the pulse counter modules, clears the counters
@@ -184,6 +186,11 @@ RPMS GetRPMS()
 	rpmOutput.FR_RPM = CalcRMP(fr_Enc);
 	rpmOutput.BL_RPM = CalcRMP(bl_Enc);
 	rpmOutput.BR_RPM = CalcRMP(br_Enc);
+
+	Serial.println(fl_Enc);
+	Serial.println(fr_Enc);
+	Serial.println(bl_Enc);
+	Serial.println(br_Enc);
 
 	pcnt_counter_clear(FL_Encoder.pcntUnit);
 	pcnt_counter_clear(FR_Encoder.pcntUnit);

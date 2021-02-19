@@ -26,7 +26,7 @@ void InitEncoders()
 	FR_Encoder.gpioNum = GPIO_NUM_35;        // gpio num should match pin num
 	FR_Encoder.pcntUnit = PCNT_UNIT_1;       // motor 2 encoder readings using pcnt unit 1
 
-	BL_Encoder.pin = 27;                     // Back Left encoder input on pin 12
+	BL_Encoder.pin = 27;                     // Back Left encoder input on pin 27
 	BL_Encoder.edgeCapture = MCPWM_POS_EDGE; // capture positive edges
 	BL_Encoder.gpioNum = GPIO_NUM_27;        // gpio num should match pin num
 	BL_Encoder.pcntUnit = PCNT_UNIT_2;       // motor 3 encoder readings using pcnt unit 2
@@ -61,7 +61,7 @@ void InitEncoders()
 	FR_PCNT.counter_l_lim = INT16_MIN;
 
 	pcnt_config_t BL_PCNT;
-	BL_PCNT.pulse_gpio_num = BL_Encoder.pin;   // Encoder input pin (GPIO12)
+	BL_PCNT.pulse_gpio_num = BL_Encoder.pin;   // Encoder input pin (GPIO27)
 	BL_PCNT.ctrl_gpio_num = PCNT_PIN_NOT_USED; // control pin not used
 	BL_PCNT.unit = BL_Encoder.pcntUnit;        // motor 3 encoder readings using pcnt unit 2
 	BL_PCNT.channel = PCNT_CHANNEL_0;          // using unit 0 channel 0

@@ -24,32 +24,39 @@ int _timeStamp = 1;
 
 void ReadSerialPayload()
 {
-	// create buffer for read
-	//char* buff = "";
-	int i = 0;
+
 	String payload = "";
 
-	uint8_t c[40];
-	char check = Serial1.read();
-	//Serial.print(c);
-	if (check == '{')
-	{
-		c[0] = '{';
-		while (c[i] != '}' && c[i] >= '"' && c[i] <= '}')
-		{
-			c[i] = Serial1.read();
-			payload += c[i];
-			Serial.print(c[i]);
-		}
+	while (Serial2.available()) {
+		Serial.printf("%c", Serial2.read());
 	}
 
-	for (int x = 0; x < 41; x++)
-	{
-		Serial.printf("%c", c[i]);
-	}
+	//// create buffer for read
+	////char* buff = "";
+	//int i = 0;
+	//String payload = "";
 
-	Serial.println();
-	Serial.println();
+	//uint8_t c[40];
+	//char check = Serial1.read();
+	////Serial.print(c);
+	//if (check == '{')
+	//{
+	//	c[0] = '{';
+	//	while (c[i] != '}' && c[i] >= '"' && c[i] <= '}')
+	//	{
+	//		c[i] = Serial1.read();
+	//		payload += c[i];
+	//		Serial.print(c[i]);
+	//	}
+	//}
+
+	//for (int x = 0; x < 41; x++)
+	//{
+	//	Serial.printf("%c", c[i]);
+	//}
+
+	//Serial.println();
+	//Serial.println();
 
 	//if (Serial1.available())
 	//{
@@ -217,14 +224,14 @@ void Core0Loop(void* param)
 void Main()
 {
 	Serial.begin(115200);
-	Serial1.begin(115200, 134217756, 5);
+	Serial2.begin(115200);
 	//Serial2.begin(115200); 
 
 	// call all Inits
 	// InitWiFi();
-	InitMotors();
-	InitEncoders();
-	TimerInterruptInit(TimerInt);
+	//InitMotors();
+	//InitEncoders();
+	//TimerInterruptInit(TimerInt);
 
 	//// assign loop function for core 0
 	//TaskHandle_t core0Task; // task handle for core 0 task
@@ -242,7 +249,7 @@ void Main()
 	for (;;)
 	{
 		ReadSerialPayload();
-		if (intFlag)
+		/*if (intFlag)
 		{
 			rpms = GetRPMS();
 
@@ -250,6 +257,6 @@ void Main()
 			intFlag = false;
 			portEXIT_CRITICAL(&timerMux);
 		}
-		DrivingWithBrakesAndSteering(_intendedAngle, _intendedSpeed, rpms);
+		DrivingWithBrakesAndSteering(_intendedAngle, _intendedSpeed, rpms);*/
 	}
 }

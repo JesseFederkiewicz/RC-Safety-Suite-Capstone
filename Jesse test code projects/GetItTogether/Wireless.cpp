@@ -22,8 +22,6 @@ void InitWiFi()
 		
 	char* timsHotssid = "tims wifi";
 	const char* timsHotpassword = "whatpassword";
-	char* jesseSsid = "Cappy";
-	char* jessePass = "ThisIs@nAdequateP@ss123"
 	WiFi.begin(timsHotssid, timsHotpassword);
 
 	//char* timssid = "hachey wifi 2.4 GHz";
@@ -31,7 +29,6 @@ void InitWiFi()
 	//WiFi.begin(timssid, timpassword);
 
 	//Serial.println("Connecting");
-	//Serial.printf("status: %d", WiFi.status());
 	while (WiFi.status() != WL_CONNECTED) {
 		//delay(250);	
 	}

@@ -137,61 +137,41 @@ void Main()
 
 	// motor one configs
 	Motor_Settings frontLeftMotor;
-	frontLeftMotor.pwm.unit = MCPWM_UNIT_0;              // frontLeftMotor using pwm unit 0
-	frontLeftMotor.pwm.timer = MCPWM_TIMER_0;            // frontLeftMotor using unit 0 timer 0
-	frontLeftMotor.pwm.opOut = MCPWM_OPR_A;              // frontLeftMotor on operator 0 output A
-	frontLeftMotor.pwm.signal = MCPWM0A;                 // sort of the same as above, needed for gpio_init
-	frontLeftMotor.pwm.pin = 22;                         // pwm for frontLeftMotor on pin 22
 	frontLeftMotor.encoder.pin = 34;                     // encoder input on pin 34
 	frontLeftMotor.encoder.edgeCapture = MCPWM_POS_EDGE; // capture positive edges
 	frontLeftMotor.encoder.gpioNum = GPIO_NUM_34;        // gpio num should match pin num
 
 	// motor two configs
 	Motor_Settings frontRightMotor;
-	frontRightMotor.pwm.unit = frontLeftMotor.pwm.unit;   // frontRightMotor shares unit with frontLeftMotor
-	frontRightMotor.pwm.timer = frontLeftMotor.pwm.timer; // frontRightMotor shares timer with frontLeftMotor
-	frontRightMotor.pwm.opOut = MCPWM_OPR_B;              // frontRightMotor on operator 0 output B
-	frontRightMotor.pwm.signal = MCPWM0B;                 // needed for gpio_init
-	frontRightMotor.pwm.pin = 23;		                  // pwm for frontLeftMotor on pin 23
 	frontRightMotor.encoder.pin = 35;                     // encoder input on pin 35
 	frontRightMotor.encoder.edgeCapture = MCPWM_POS_EDGE; // capture positive edges
 	frontRightMotor.encoder.gpioNum = GPIO_NUM_35;        // gpio num should match pin num
 
 	// motor three configs
 	Motor_Settings backLeftMotor;
-	backLeftMotor.pwm.unit = MCPWM_UNIT_1;              // frontRightMotor shares unit with frontLeftMotor
-	backLeftMotor.pwm.timer = MCPWM_TIMER_0;            // frontRightMotor shares timer with frontLeftMotor
-	backLeftMotor.pwm.opOut = MCPWM_OPR_A;              // frontRightMotor on operator 0 output B
-	backLeftMotor.pwm.signal = MCPWM0A;                 // needed for gpio_init
-	backLeftMotor.pwm.pin = 15;		                    // pwm for frontLeftMotor on pin 15
-	backLeftMotor.encoder.pin = 12;                     // encoder input on pin 12
+	backLeftMotor.encoder.pin = 27;                     // encoder input on pin 12
 	backLeftMotor.encoder.edgeCapture = MCPWM_POS_EDGE; // capture positive edges
-	backLeftMotor.encoder.gpioNum = GPIO_NUM_12;        // gpio num should match pin num
+	backLeftMotor.encoder.gpioNum = GPIO_NUM_27;        // gpio num should match pin num
 
 	// motor four configs
 	Motor_Settings backRightMotor;
-	backRightMotor.pwm.unit = backLeftMotor.pwm.unit;    // frontRightMotor shares unit with frontLeftMotor
-	backRightMotor.pwm.timer = backLeftMotor.pwm.timer;  // frontRightMotor shares timer with frontLeftMotor
-	backRightMotor.pwm.opOut = MCPWM_OPR_B;              // frontRightMotor on operator 0 output B
-	backRightMotor.pwm.signal = MCPWM0B;                 // needed for gpio_init
-	backRightMotor.pwm.pin = 2;			                 // pwm for frontLeftMotor on pin 2
 	backRightMotor.encoder.pin = 14;                     // encoder input on pin 14
 	backRightMotor.encoder.edgeCapture = MCPWM_POS_EDGE; // capture positive edges
 	backRightMotor.encoder.gpioNum = GPIO_NUM_14;        // gpio num should match pin num
 
-	// config for pwm unit 0 timer 0 
-	mcpwm_config_t pwmconf;
-	pwmconf.frequency = 10000;				 // timer freq 10k
-	pwmconf.duty_mode = MCPWM_DUTY_MODE_0;   // positive duty cycle
-	pwmconf.counter_mode = MCPWM_UP_COUNTER; // timer up counter
-	pwmconf.cmpr_a = 0;						 // initial duty of 0
-	pwmconf.cmpr_b = 0;
+	//// config for pwm unit 0 timer 0 
+	//mcpwm_config_t pwmconf;
+	//pwmconf.frequency = 10000;				 // timer freq 10k
+	//pwmconf.duty_mode = MCPWM_DUTY_MODE_0;   // positive duty cycle
+	//pwmconf.counter_mode = MCPWM_UP_COUNTER; // timer up counter
+	//pwmconf.cmpr_a = 0;						 // initial duty of 0
+	//pwmconf.cmpr_b = 0;
 
-	// run setup for each motor
-	PWMSetup(frontLeftMotor, &pwmconf);
-	PWMSetup(frontRightMotor, &pwmconf);
-	PWMSetup(backLeftMotor, &pwmconf);
-	PWMSetup(backRightMotor, &pwmconf);
+	//// run setup for each motor
+	//PWMSetup(frontLeftMotor, &pwmconf);
+	//PWMSetup(frontRightMotor, &pwmconf);
+	//PWMSetup(backLeftMotor, &pwmconf);
+	//PWMSetup(backRightMotor, &pwmconf);
 
 	// Encoder Setups:
 
@@ -259,10 +239,10 @@ void Main()
 	*/
 	timerAlarmEnable(timer);
 
-	mcpwm_set_duty(frontLeftMotor.pwm.unit, frontLeftMotor.pwm.timer, frontLeftMotor.pwm.opOut, 50);
-	mcpwm_set_duty(frontRightMotor.pwm.unit, frontRightMotor.pwm.timer, frontRightMotor.pwm.opOut, 50);
-	mcpwm_set_duty(backLeftMotor.pwm.unit, backLeftMotor.pwm.timer, backLeftMotor.pwm.opOut, 50);
-	mcpwm_set_duty(backRightMotor.pwm.unit, backRightMotor.pwm.timer, backRightMotor.pwm.opOut, 50);
+	mcpwm_set_duty(frontLeftMotor.pwm.unit, frontLeftMotor.pwm.timer, frontLeftMotor.pwm.opOut, 100);
+	mcpwm_set_duty(frontRightMotor.pwm.unit, frontRightMotor.pwm.timer, frontRightMotor.pwm.opOut, 100);
+	mcpwm_set_duty(backLeftMotor.pwm.unit, backLeftMotor.pwm.timer, backLeftMotor.pwm.opOut, 100);
+	mcpwm_set_duty(backRightMotor.pwm.unit, backRightMotor.pwm.timer, backRightMotor.pwm.opOut, 100);
 
 	Serial.begin(115200);
 
@@ -281,29 +261,34 @@ void Main()
 			pcnt_get_counter_value(PCNT_UNIT_2, &bl_Enc);
 			pcnt_get_counter_value(PCNT_UNIT_3, &br_Enc);
 
-			Serial.print("FL enc:");
 			Serial.println(fl_Enc);
-			Serial.print("RPM1:");
-			Serial.println(CalcRMP(fl_Enc));
-			Serial.println();
-
-			Serial.print("FR enc:");
 			Serial.println(fr_Enc);
-			Serial.print("RPM2:");
-			Serial.println(CalcRMP(fr_Enc));
-			Serial.println();
-
-			Serial.print("BL enc:");
 			Serial.println(bl_Enc);
-			Serial.print("RPM3:");
-			Serial.println(CalcRMP(bl_Enc));
-			Serial.println();
-
-			Serial.print("BR enc:");
 			Serial.println(br_Enc);
-			Serial.print("RPM4:");
-			Serial.println(CalcRMP(br_Enc));
-			Serial.println();
+
+			//Serial.print("FL enc:");
+			//Serial.println(fl_Enc);
+			//Serial.print("RPM1:");
+			//Serial.println(CalcRMP(fl_Enc));
+			//Serial.println();
+
+			//Serial.print("FR enc:");
+			//Serial.println(fr_Enc);
+			//Serial.print("RPM2:");
+			//Serial.println(CalcRMP(fr_Enc));
+			//Serial.println();
+
+			//Serial.print("BL enc:");
+			//Serial.println(bl_Enc);
+			//Serial.print("RPM3:");
+			//Serial.println(CalcRMP(bl_Enc));
+			//Serial.println();
+
+			//Serial.print("BR enc:");
+			//Serial.println(br_Enc);
+			//Serial.print("RPM4:");
+			//Serial.println(CalcRMP(br_Enc));
+			//Serial.println();
 
 			pcnt_counter_clear(PCNT_UNIT_0);
 			pcnt_counter_clear(PCNT_UNIT_1);

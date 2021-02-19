@@ -132,10 +132,13 @@ void Main()
 	// get the status of Trasnmitted packet
 	esp_now_register_send_cb(OnDataSent);
 
-	char* jesseSsid = "Cappy";
-	char* jessePass = "ThisIs@nAdequateP@ss123";
+	//char* jesseSsid = "Cappy";
+	//char* jessePass = "ThisIs@nAdequateP@ss123";
+	//WiFi.begin(jesseSsid, jessePass);
 
-	WiFi.begin(jesseSsid, jessePass);
+	char* timSsid = "tims wifi";
+	char* timPass = "whatpassword";
+	WiFi.begin(timSsid, timPass);
 
 	while (WiFi.status() != WL_CONNECTED);
 

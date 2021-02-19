@@ -32,7 +32,7 @@ void Main()
 	Serial.begin(115200);
 
 	// Set device as a Wi-Fi Station
-	WiFi.mode(WIFI_STA);	//can be WiFi_AP_STA
+	WiFi.mode(WIFI_AP_STA);	//can be WiFi_AP_STA
 
 	// Init ESP-NOW
 	if (esp_now_init() != ESP_OK) {
