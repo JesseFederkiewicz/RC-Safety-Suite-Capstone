@@ -58,7 +58,7 @@ void DrivingWithBrakesAndSteering(int angle, uint speedRequest, RPMS rpm)
 	float desired_LEFT_RPM;
 	float desired_RIGHT_RPM;
 
-	if (angle >= 0 && angle <= 90)
+	if (angle >= 0 && angle < 90)
 	{
 		//Serial.println("Forward Right");
 		double angleAsPercent = ((100.0 / 90.0 * (90.0 - angle)) / 100.0);
@@ -82,7 +82,7 @@ void DrivingWithBrakesAndSteering(int angle, uint speedRequest, RPMS rpm)
 		desired_RIGHT_RPM = desired_LEFT_RPM * angleAsPercent;
 	}
 
-	else if (angle < 0 && angle >= -90)
+	else if (angle < 0 && angle > -90)
 	{
 		//Serial.println("Forward Left");
 		double angleAsPercent = ((100.0 / 90.0 * (90.0 - (angle * -1))) / 100.0);
@@ -129,6 +129,33 @@ void DrivingWithBrakesAndSteering(int angle, uint speedRequest, RPMS rpm)
 		desired_LEFT_RPM = desired_RIGHT_RPM * angleAsPercent;
 	}
 
+	//Burn right
+	if (angle == 90)
+	{
+
+		double angleAsPercent = ((100.0 / 90.0 * (90.0 - angle)) / 100.0);
+
+		leftDir = Forward;
+		rightDir = Reverse;
+
+		desired_LEFT_RPM = MAXRPM * (speedRequest / 100.0);
+
+		desired_RIGHT_RPM = desired_LEFT_RPM; //not the same rpm
+	}
+
+	//Burn left
+	else if (angle == -90)
+	{
+		//Serial.println("Forward Left");
+		double angleAsPercent = ((100.0 / 90.0 * (90.0 - (angle * -1))) / 100.0);
+
+		leftDir = Reverse;
+		rightDir = Forward;
+
+		desired_RIGHT_RPM = MAXRPM * (speedRequest / 100.0);
+		desired_LEFT_RPM = desired_RIGHT_RPM;	//not the same rpm
+	}
+
 	//duties.BL_Duty = rpm.BL_RPM < desired_LEFT_RPM ? duties.BL_Duty++ : duties.BL_Duty--;
 	//duties.FL_Duty = rpm.FL_RPM < desired_LEFT_RPM ? duties.FL_Duty++ : duties.FL_Duty--;
 	//duties.BR_Duty = rpm.BR_RPM < desired_RIGHT_RPM ? duties.BR_Duty++ : duties.BR_Duty--;
@@ -160,11 +187,11 @@ void DrivingWithBrakesAndSteering(int angle, uint speedRequest, RPMS rpm)
 
 	if (rpm.BR_RPM < desired_RIGHT_RPM && duties.BR_Duty < 100)
 	{
-		if (duties.FL_Duty < dutyMin)
-			duties.FL_Duty = dutyMin;
+		if (duties.BR_Duty < dutyMin)
+			duties.BR_Duty = dutyMin;
 
 		else
-			duties.FL_Duty++;
+			duties.BR_Duty++;
 	}
 
 	else if (rpm.BR_RPM > desired_RIGHT_RPM && duties.BR_Duty > 0)
@@ -181,7 +208,6 @@ void DrivingWithBrakesAndSteering(int angle, uint speedRequest, RPMS rpm)
 
 	else if (rpm.FR_RPM > desired_RIGHT_RPM && duties.FR_Duty > 0)
 		duties.FR_Duty--;
-
 
 	//if (tempcount == 23)
 

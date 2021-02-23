@@ -248,11 +248,11 @@ void Main()
 			intFlag = false;
 			portEXIT_CRITICAL(&timerMux);
 
-			//Serial.println("RPMS:");
-			//Serial.println(rpms.FL_RPM);
-			//Serial.println(rpms.FR_RPM);
-			//Serial.println(rpms.BL_RPM);
-			//Serial.println(rpms.BR_RPM);
+			Serial.println("RPMS:");
+			Serial.println(rpms.FL_RPM);
+			Serial.println(rpms.FR_RPM);
+			Serial.println(rpms.BL_RPM);
+			Serial.println(rpms.BR_RPM);
 
 			int16_t ret = GetGroundSpeedCounterVal();
 
