@@ -29,12 +29,7 @@ void ReadSerialPayload()
 
 	if (Serial2.available()) 
 	{
-
-		//RPM ISSUE STARTS HERE
-
 		payload = Serial2.readStringUntil('!');
-
-		//RPM ISSUE ENDS HERE
 
 		if (payload.length() < 12) return;
 
@@ -217,7 +212,7 @@ void Core0Loop(void* param)
 // Main runs on core 1
 void Main()
 {
-	//Serial.begin(115200);
+	Serial.begin(115200);
 	Serial2.begin(115200);
 	//Serial2.begin(115200); 
 
@@ -262,7 +257,8 @@ void Main()
 			int16_t ret = GetGroundSpeedCounterVal();
 
 			//Serial.println(ret);
+			DrivingWithBrakesAndSteering(_intendedAngle, _intendedSpeed, rpms);
 		}
-		DrivingWithBrakesAndSteering(_intendedAngle, _intendedSpeed, rpms);
+		/*DrivingWithBrakesAndSteering(_intendedAngle, _intendedSpeed, rpms);*/
 	}
 }
