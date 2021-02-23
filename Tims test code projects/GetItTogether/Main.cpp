@@ -24,7 +24,6 @@ int _timeStamp = 1;
 
 void ReadSerialPayload()
 {
-
 	String payload = "";
 
 	while (Serial2.available()) {
@@ -228,10 +227,10 @@ void Main()
 	//Serial2.begin(115200); 
 
 	// call all Inits
-	// InitWiFi();
-	//InitMotors();
-	//InitEncoders();
-	//TimerInterruptInit(TimerInt);
+	InitWiFi();
+	InitMotors();
+	InitEncoders();
+	TimerInterruptInit(TimerInt);
 
 	//// assign loop function for core 0
 	//TaskHandle_t core0Task; // task handle for core 0 task
@@ -249,7 +248,7 @@ void Main()
 	for (;;)
 	{
 		ReadSerialPayload();
-		/*if (intFlag)
+		if (intFlag)
 		{
 			rpms = GetRPMS();
 
@@ -257,6 +256,6 @@ void Main()
 			intFlag = false;
 			portEXIT_CRITICAL(&timerMux);
 		}
-		DrivingWithBrakesAndSteering(_intendedAngle, _intendedSpeed, rpms);*/
+		DrivingWithBrakesAndSteering(_intendedAngle, _intendedSpeed, rpms);
 	}
 }
