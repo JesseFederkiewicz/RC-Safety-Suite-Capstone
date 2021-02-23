@@ -2,6 +2,7 @@
 // File: Main.cpp
 // Authors: Tim Hachey/Jesse Federkiewicz
 // 
+// Current Progress: Ground Speed Sensors and RPM Complete -- that should be it for hardware!
 
 #include "Main.h"
 
@@ -29,7 +30,11 @@ void ReadSerialPayload()
 	if (Serial2.available()) 
 	{
 
+		//RPM ISSUE STARTS HERE
+
 		payload = Serial2.readStringUntil('!');
+
+		//RPM ISSUE ENDS HERE
 
 		if (payload.length() < 12) return;
 
@@ -167,7 +172,10 @@ void Core0Loop(void* param)
 {
 	for (;;)
 	{
-		//delay(10);
+		ReadSerialPayload();
+
+		//Here for now until more is done, if it spins too much guru error
+		delay(10);
 		//ReadSerialPayload();
 
 		//if (WiFi.status() == WL_CONNECTED)
@@ -209,9 +217,11 @@ void Core0Loop(void* param)
 // Main runs on core 1
 void Main()
 {
-	Serial.begin(115200);
+	//Serial.begin(115200);
 	Serial2.begin(115200);
 	//Serial2.begin(115200); 
+
+	GroundSpeedSensorInit();
 
 	// call all Inits
 	// InitWiFi();
@@ -219,22 +229,22 @@ void Main()
 	InitEncoders();
 	TimerInterruptInit(TimerInt);
 
-	//// assign loop function for core 0
-	//TaskHandle_t core0Task; // task handle for core 0 task
-	//xTaskCreatePinnedToCore(
-	//	Core0Loop,   /* Function to run on core 0*/
-	//	"core0Task", /* Name of the task */
-	//	10000,       /* Stack size in words */
-	//	NULL,        /* Task input parameter */
-	//	0,           /* Priority of the task */
-	//	&core0Task,  /* Task handle. */
-	//	0);          /* Core where the task should run */
+	// assign loop function for core 0
+	TaskHandle_t core0Task; // task handle for core 0 task
+	xTaskCreatePinnedToCore(
+		Core0Loop,   /* Function to run on core 0*/
+		"core0Task", /* Name of the task */
+		10000,       /* Stack size in words */
+		NULL,        /* Task input parameter */
+		0,           /* Priority of the task */
+		&core0Task,  /* Task handle. */
+		0);          /* Core where the task should run */
 
 	RPMS rpms;
 
 	for (;;)
 	{
-		ReadSerialPayload();
+		//ReadSerialPayload();
 		if (intFlag)
 		{
 			rpms = GetRPMS();
@@ -242,6 +252,16 @@ void Main()
 			portENTER_CRITICAL(&timerMux);
 			intFlag = false;
 			portEXIT_CRITICAL(&timerMux);
+
+			//Serial.println("RPMS:");
+			//Serial.println(rpms.FL_RPM);
+			//Serial.println(rpms.FR_RPM);
+			//Serial.println(rpms.BL_RPM);
+			//Serial.println(rpms.BR_RPM);
+
+			int16_t ret = GetGroundSpeedCounterVal();
+
+			//Serial.println(ret);
 		}
 		DrivingWithBrakesAndSteering(_intendedAngle, _intendedSpeed, rpms);
 	}
