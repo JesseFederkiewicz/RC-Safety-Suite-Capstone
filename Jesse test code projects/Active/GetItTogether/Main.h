@@ -9,6 +9,7 @@
 #include "Wireless.h"
 #include "Arduino_JSON.h"
 #include "HardwareSerial.h"
+#include "GroundSpeed.h"
 
 void Main();
 

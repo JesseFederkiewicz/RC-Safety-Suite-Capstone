@@ -187,10 +187,10 @@ RPMS GetRPMS()
 	rpmOutput.BL_RPM = CalcRMP(bl_Enc);
 	rpmOutput.BR_RPM = CalcRMP(br_Enc);
 
-	Serial.println(fl_Enc);
-	Serial.println(fr_Enc);
-	Serial.println(bl_Enc);
-	Serial.println(br_Enc);
+	//Serial.println(fl_Enc);
+	//Serial.println(fr_Enc);
+	//Serial.println(bl_Enc);
+	//Serial.println(br_Enc);
 
 	pcnt_counter_clear(FL_Encoder.pcntUnit);
 	pcnt_counter_clear(FR_Encoder.pcntUnit);

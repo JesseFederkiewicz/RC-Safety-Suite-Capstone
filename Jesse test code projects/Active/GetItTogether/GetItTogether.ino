@@ -7,6 +7,7 @@
 */
 
 
+#include "GroundSpeed.h"
 #include "Main.h"
 
 void setup() {
