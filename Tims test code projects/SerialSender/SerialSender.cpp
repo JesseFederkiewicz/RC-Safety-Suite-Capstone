@@ -11,6 +11,8 @@
 HTTPClient _mainThread;
 HTTPClient _secondThread;
 
+bool _mainCoreSending = false;
+bool _secondCoreSending = true;
 int _lastTime = 0;
 
 String GrabData(bool isMainThread)
@@ -84,8 +86,11 @@ String GrabData(bool isMainThread)
 
 void SendPayload(String payload) 
 {
-	if (payload != "outdated" && payload != "badcode" && Serial2.availableForWrite())
-		Serial2.println(payload);
+	if (Serial2.availableForWrite())
+	{
+		//Serial.println(payload);
+		Serial2.println(payload + "!");
+	}
 }
 
 void Core0Grab(void* param)
@@ -95,7 +100,12 @@ void Core0Grab(void* param)
 
 	for (;;)
 	{
+		if (_mainCoreSending)
+			delay(200);
+
+		_secondCoreSending = true;
 		String payload = GrabData(false);
+		_secondCoreSending = false;
 		SendPayload(payload);		
 	}
 }
@@ -103,20 +113,46 @@ void Core0Grab(void* param)
 void Main()
 {
 	// Init Serial2 Monitor
-	Serial.begin(115200);
+	//Serial.begin(115200);
 	Serial2.begin(115200);
 
 	//char* jesseSsid = "Cappy";
 	//char* jessePass = "ThisIs@nAdequateP@ss123";
 	//WiFi.begin(jesseSsid, jessePass);
 
-	char* timSsid = "tims wifi";
-	char* timPass = "whatpassword";
-	WiFi.begin(timSsid, timPass);
+	//Serial.println("Connecting");
 
-	Serial.println("Connecting");
-	while (WiFi.status() != WL_CONNECTED) {}
-	Serial.println("Connected");
+	const char* timsHotssid = "tims wifi";
+	const char* timsHotpassword = "whatpassword";
+	const char* timsShitternet = "hachey wifi 2.4 GHz";
+	const char* timsShitternetPass = "38hachey";
+	const char* jesseSsid = "Cappy";
+	const char* jessePass = "ThisIs@nAdequateP@ss123";
+
+	WiFi.begin(jesseSsid, jessePass);
+
+	//char* timssid = "hachey wifi 2.4 GHz";
+	//const char* timpassword = "38hachey";
+	//WiFi.begin(timssid, timpassword);
+	int connectionCounter = 0;
+
+	//Serial.println("Connecting");
+	while (WiFi.status() != WL_CONNECTED) {
+		delay(250);
+		connectionCounter++;
+
+		if (connectionCounter > 20)
+		{
+			WiFi.disconnect();
+			WiFi.begin(timsShitternet, timsShitternetPass);
+			//Serial.println("REConnecting");
+			while (WiFi.status() != WL_CONNECTED) {
+				delay(250);
+			}
+		}
+	}
+
+	//Serial.println("Connected");
 
 	// assign loop function for core 0
 	TaskHandle_t core0Task; // task handle for core 0 task
@@ -130,14 +166,18 @@ void Main()
 		0);          /* Core where the task should run */
 
 
-	delay(400);
+	delay(450);
 
 	_mainThread.begin("https://coolstuffliveshere.com/Rc_Safety_Suite/Main_Web/webservice.php");
-
+	int i = 0;
 	for (;;)
 	{
+		if (_secondCoreSending)
+			delay(200);
+
+		_mainCoreSending = true;
 		String payload = GrabData(true);
-		Serial.println(payload);
+		_mainCoreSending = false;
 		SendPayload(payload);
 	}
 }

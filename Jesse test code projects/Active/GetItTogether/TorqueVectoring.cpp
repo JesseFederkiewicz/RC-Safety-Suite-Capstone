@@ -7,13 +7,14 @@
 
 int tempcount = 0; //take out
 bool firstTime = true;
-bool breakingInProgress = false;
+bool brakingInProgress = false;
 
 MotorDuties duties;
 
 Current_Wheel_Direction curWheelDirection;
 
 Vehicle_Movement vehicleDir = stopped;
+Vehicle_Movement lastDir = stopped;
 
 MotorDirection leftDir;
 MotorDirection rightDir;
@@ -37,6 +38,12 @@ void DrivingWithBrakesAndSteering(int angle, uint speedRequest, RPMS rpm)
 		duties.FR_Duty = 0;
 		duties.BL_Duty = 0;
 		duties.BR_Duty = 0;
+
+		curWheelDirection.BackLeft = decel;
+		curWheelDirection.BackRight = decel;
+		curWheelDirection.FrontLeft = decel;
+		curWheelDirection.FrontRight = decel;
+
 		firstTime = false;
 	}
 
@@ -59,9 +66,10 @@ void DrivingWithBrakesAndSteering(int angle, uint speedRequest, RPMS rpm)
 
 	//calculate desired rpm at 100%
 
-	//int duty = speedSet * ((100 / 90 * (90 - angle)) / 100);
+	//int duty = speedSet * ((100 / 90 * (90 - angle)) / 100);	
 
-	if (!breakingInProgress && speedRequest != 0)
+
+	if (!brakingInProgress && speedRequest != 0)
 	{
 		float desired_LEFT_RPM;
 		float desired_RIGHT_RPM;
@@ -182,19 +190,24 @@ void DrivingWithBrakesAndSteering(int angle, uint speedRequest, RPMS rpm)
 
 		int breakStrengh = 5;		//higher is stronger
 
-		float guessLeftRPM = desired_LEFT_RPM * (speedRequest / 1000.0) / (MAXRPM / 1000) / 2 + dutyMin - 20;
-		float guessRightRPM = desired_RIGHT_RPM * (speedRequest / 1000.0) / (MAXRPM / 1000) / 2 + dutyMin - 20;
+		float guessLeftDuty = desired_LEFT_RPM * (speedRequest / 1000.0) / (MAXRPM / 1000) / 2 + dutyMin - 20;
+		float guessRightDuty = desired_RIGHT_RPM * (speedRequest / 1000.0) / (MAXRPM / 1000) / 2 + dutyMin - 20;
 
 
-		Serial.println(guessLeftRPM);
-		Serial.println(guessRightRPM);
+		//Serial.println(guessLeftDuty);
+		//Serial.println(guessRightDuty);
 
 		if (rpm.BL_RPM < desired_LEFT_RPM && duties.BL_Duty < 100)
 		{
 			if (curWheelDirection.BackLeft != accel)
 			{
-				duties.BL_Duty = guessLeftRPM;
-				curWheelDirection.BackLeft = accel;
+				if (duties.BL_Duty > guessLeftDuty)
+					duties.BL_Duty++;
+
+				else {
+					duties.BL_Duty = guessLeftDuty;
+					curWheelDirection.BackLeft = accel;
+				}
 			}
 
 			//if (duties.BL_Duty < dutyMin)
@@ -234,8 +247,13 @@ void DrivingWithBrakesAndSteering(int angle, uint speedRequest, RPMS rpm)
 
 			if (curWheelDirection.FrontLeft != accel)
 			{
-				duties.FL_Duty = guessLeftRPM;
-				curWheelDirection.FrontLeft = accel;
+				if (duties.FL_Duty > guessLeftDuty)
+					duties.FL_Duty++;
+				else {
+					duties.FL_Duty = guessLeftDuty;
+					curWheelDirection.FrontLeft = accel;
+				}
+		
 			}
 
 			else
@@ -270,8 +288,12 @@ void DrivingWithBrakesAndSteering(int angle, uint speedRequest, RPMS rpm)
 
 			if (curWheelDirection.BackRight != accel)
 			{
-				duties.BR_Duty = guessRightRPM;
-				curWheelDirection.BackRight = accel;
+				if (duties.BR_Duty > guessRightDuty)
+					duties.BR_Duty++;
+				else {
+					duties.BR_Duty = guessRightDuty;
+					curWheelDirection.BackRight = accel;
+				}		
 			}
 
 			else
@@ -307,8 +329,12 @@ void DrivingWithBrakesAndSteering(int angle, uint speedRequest, RPMS rpm)
 
 			if (curWheelDirection.FrontRight != accel)
 			{
-				duties.FR_Duty = guessRightRPM;
-				curWheelDirection.FrontRight = accel;
+				if (duties.FR_Duty > guessRightDuty)
+					duties.FR_Duty++;
+				else {
+					duties.FR_Duty = guessRightDuty;
+					curWheelDirection.FrontRight = accel;
+				}
 			}
 
 			else
@@ -335,6 +361,10 @@ void DrivingWithBrakesAndSteering(int angle, uint speedRequest, RPMS rpm)
 			//else if (rightDir == Reverse)
 			//	rightDir = Forward;
 		}
+		Serial.printf("\n\n\nBL Duty: %f2 - Guess: %f2 - RPM: %f2 - targetRPM: %f2\n", duties.BL_Duty, guessLeftDuty, rpm.BL_RPM, desired_LEFT_RPM);
+		Serial.printf("\nFL Duty: %f2 - Guess: %f2 - RPM: %f2 - targetRPM: %f2\n", duties.FL_Duty, guessLeftDuty, rpm.FL_RPM, desired_LEFT_RPM);
+		Serial.printf("\nBR Duty: %f2 - Guess: %f2 - RPM: %f2 - targetRPM: %f2\n", duties.BR_Duty, guessRightDuty, rpm.BR_RPM, desired_RIGHT_RPM);
+		Serial.printf("\nFR Duty: %f2 - Guess: %f2 - RPM: %f2 - targetRPM: %f2\n", duties.FR_Duty, guessRightDuty, rpm.FR_RPM, desired_RIGHT_RPM);
 	}
 
 	//if (tempcount == 23)
@@ -392,13 +422,13 @@ void DrivingWithBrakesAndSteering(int angle, uint speedRequest, RPMS rpm)
 
 	//	Serial.println("Breaking");
 	//}
-	////if any wheel comes to a stop, assume fully stopped
 
-	if (speedSet == 0 && (rpm.BL_RPM < 50 || rpm.BR_RPM < 50 || rpm.FL_RPM < 50 || rpm.FR_RPM < 50))
+	if (speedSet == 0 && (rpm.BL_RPM < 10 || rpm.BR_RPM < 10 || rpm.FL_RPM < 10 || rpm.FR_RPM < 10))
 	{
 		//Serial.println("Stopped");
+		lastDir = vehicleDir;
 		vehicleDir = stopped;
-		breakingInProgress = false;
+		brakingInProgress = false;
 		//Serial.println("Stop triggered");
 
 		duties.FL_Duty = 0;
@@ -407,28 +437,43 @@ void DrivingWithBrakesAndSteering(int angle, uint speedRequest, RPMS rpm)
 		duties.BR_Duty = 0;
 	}
 
-	if (speedSet == 0 && vehicleDir != stopped && (rpm.BL_RPM > 100 || rpm.BR_RPM > 100 || rpm.FL_RPM > 100 || rpm.FR_RPM > 100))//(rpm.BL_RPM > 5 || rpm.BR_RPM > 5 || rpm.FL_RPM > 5 || rpm.FR_RPM > 5))
+	if (vehicleDir == stopped && (rpm.BL_RPM > 20 || rpm.BR_RPM > 20 || rpm.FL_RPM > 20 || rpm.FR_RPM > 20))
+	{
+		vehicleDir = lastDir;
+		if (vehicleDir == forward)
+		{
+			leftDir = Reverse;
+			rightDir = Reverse;
+		}
+		else
+		{
+			leftDir = Forward;
+			rightDir = Forward;
+		}
+	}
+
+	if (speedSet == 0 && vehicleDir != stopped && (rpm.BL_RPM > 10 || rpm.BR_RPM > 10 || rpm.FL_RPM > 10 || rpm.FR_RPM > 10) || brakingInProgress)//(rpm.BL_RPM > 5 || rpm.BR_RPM > 5 || rpm.FL_RPM > 5 || rpm.FR_RPM > 5))
 	{
 		//VehicleDir --  forward 0, backward 1
 		//Serial.println(vehicleDir);
 
 		//wheelDir
-		if (vehicleDir == forward && !breakingInProgress)
+		if (vehicleDir == forward && !brakingInProgress)
 		{
 			leftDir = Reverse;
 			rightDir = Reverse;
 			vehicleDir = backward;
-			breakingInProgress = true;
-			//breakingInProgress = true;
+			brakingInProgress = true;
+			//brakingInProgress = true;
 			//Serial.println("SHORT DSAHJIODSAHIOUDSAHIOUDSA");
 		}
 
-		else if (vehicleDir == backward && !breakingInProgress)
+		else if (vehicleDir == backward && !brakingInProgress)
 		{
 			leftDir = Forward;
 			rightDir = Forward;
 			vehicleDir = forward;
-			breakingInProgress = true;
+			brakingInProgress = true;
 
 			//Serial.println("DASKJIODSAJIOJDSAIJDSAIODJSAIOJdsAIOJDASIOJDSAIOJDSAIOJDSAIOJDSAIOJDSAIOJDSIAOdsa");
 		}
@@ -443,11 +488,11 @@ void DrivingWithBrakesAndSteering(int angle, uint speedRequest, RPMS rpm)
 		curWheelDirection.FrontLeft = decel;
 		curWheelDirection.FrontRight = decel;
 
-		//if (rightDir == Forward && !breakingInProgress)
+		//if (rightDir == Forward && !brakingInProgress)
 		//{
 		//	rightDir = Reverse;
 		//	breakingInProgressRight = true;
-		//	//breakingInProgress = true;
+		//	//brakingInProgress = true;
 		//}
 
 		//else if (rightDir == Reverse && !breakingInProgressRight)
@@ -464,61 +509,61 @@ void DrivingWithBrakesAndSteering(int angle, uint speedRequest, RPMS rpm)
 		duties.BR_Duty = stopPower;
 	}
 
-	else if (speedSet == 0 && vehicleDir != stopped && (rpm.BL_RPM > 50 || rpm.BR_RPM > 50 || rpm.FL_RPM > 50 || rpm.FR_RPM > 50))//(rpm.BL_RPM > 5 || rpm.BR_RPM > 5 || rpm.FL_RPM > 5 || rpm.FR_RPM > 5))
-	{
-		//VehicleDir --  forward 0, backward 1
-		//Serial.println(vehicleDir);
+	//else if (speedSet == 0 && vehicleDir != stopped && (rpm.BL_RPM > 10 || rpm.BR_RPM > 10 || rpm.FL_RPM > 10 || rpm.FR_RPM > 10))//(rpm.BL_RPM > 5 || rpm.BR_RPM > 5 || rpm.FL_RPM > 5 || rpm.FR_RPM > 5))
+	//{
+	//	//VehicleDir --  forward 0, backward 1
+	//	//Serial.println(vehicleDir);
 
-		//wheelDir
-		if (vehicleDir == forward && !breakingInProgress)
-		{
-			leftDir = Reverse;
-			rightDir = Reverse;
-			vehicleDir = backward;
-			breakingInProgress = true;
-			//breakingInProgress = true;
-			//Serial.println("SHORT DSAHJIODSAHIOUDSAHIOUDSA");
-		}
+	//	//wheelDir
+	//	if (vehicleDir == forward && !brakingInProgress)
+	//	{
+	//		leftDir = Reverse;
+	//		rightDir = Reverse;
+	//		vehicleDir = backward;
+	//		brakingInProgress = true;
+	//		//brakingInProgress = true;
+	//		//Serial.println("SHORT DSAHJIODSAHIOUDSAHIOUDSA");
+	//	}
 
-		else if (vehicleDir == backward && !breakingInProgress)
-		{
-			leftDir = Forward;
-			rightDir = Forward;
-			vehicleDir = forward;
-			breakingInProgress = true;
+	//	else if (vehicleDir == backward && !brakingInProgress)
+	//	{
+	//		leftDir = Forward;
+	//		rightDir = Forward;
+	//		vehicleDir = forward;
+	//		brakingInProgress = true;
 
-			//Serial.println("DASKJIODSAJIOJDSAIJDSAIODJSAIOJdsAIOJDASIOJDSAIOJDSAIOJDSAIOJDSAIOJDSAIOJDSIAOdsa");
-		}
+	//		//Serial.println("DASKJIODSAJIOJDSAIJDSAIODJSAIOJdsAIOJDASIOJDSAIOJDSAIOJDSAIOJDSAIOJDSAIOJDSIAOdsa");
+	//	}
 
-		else
-		{
-			//Serial.println("WHAT WHATRNIASDHIUODSAHJUIODSA");
-		}
+	//	else
+	//	{
+	//		//Serial.println("WHAT WHATRNIASDHIUODSAHJUIODSA");
+	//	}
 
-		//if (rightDir == Forward && !breakingInProgress)
-		//{
-		//	rightDir = Reverse;
-		//	breakingInProgressRight = true;
-		//	//breakingInProgress = true;
-		//}
+	//	//if (rightDir == Forward && !brakingInProgress)
+	//	//{
+	//	//	rightDir = Reverse;
+	//	//	breakingInProgressRight = true;
+	//	//	//brakingInProgress = true;
+	//	//}
 
-		//else if (rightDir == Reverse && !breakingInProgressRight)
-		//{
-		//	rightDir = Forward;
-		//	breakingInProgressRight = true;
-		//}
+	//	//else if (rightDir == Reverse && !breakingInProgressRight)
+	//	//{
+	//	//	rightDir = Forward;
+	//	//	breakingInProgressRight = true;
+	//	//}
 
 
-		int stopPower = 60;
-		duties.FL_Duty = stopPower;
-		duties.FR_Duty = stopPower;
-		duties.BL_Duty = stopPower;
-		duties.BR_Duty = stopPower;
-	}
+	//	int stopPower = 60;
+	//	duties.FL_Duty = stopPower;
+	//	duties.FR_Duty = stopPower;
+	//	duties.BL_Duty = stopPower;
+	//	duties.BR_Duty = stopPower;
+	//}
 
 	else if (speedSet != 0)
 	{
-		breakingInProgress = false;
+		brakingInProgress = false;
 	}
 
 	//if (rpm.BL_RPM < desired_LEFT_RPM)

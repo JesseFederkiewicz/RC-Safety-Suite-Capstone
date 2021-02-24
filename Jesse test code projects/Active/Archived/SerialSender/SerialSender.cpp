@@ -126,6 +126,7 @@ void Main()
 	const char* timsHotpassword = "whatpassword";
 	const char* jesseSsid = "Cappy";
 	const char* jessePass = "ThisIs@nAdequateP@ss123";
+
 	WiFi.begin(jesseSsid, jessePass);
 
 	//char* timssid = "hachey wifi 2.4 GHz";
@@ -142,16 +143,12 @@ void Main()
 		{
 			WiFi.disconnect();
 			WiFi.begin(timsHotssid, timsHotpassword);
-
+			//Serial.println("REConnecting");
 			while (WiFi.status() != WL_CONNECTED) {
 				delay(250);
 			}
 		}
 	}
-
-	WiFi.begin(jesseSsid, jessePass);
-
-	while (WiFi.status() != WL_CONNECTED) {}
 
 	//Serial.println("Connected");
 
