@@ -12,6 +12,19 @@ typedef enum Vehicle_Movement {
 	stopped
 };
 
+typedef enum Accel_Or_Decel
+{
+	accel,
+	decel
+};
+
+typedef struct Current_Wheel_Direction {
+	Accel_Or_Decel FrontLeft;
+	Accel_Or_Decel BackLeft;
+	Accel_Or_Decel FrontRight;
+	Accel_Or_Decel BackRight;
+};
+
 void DrivingWithBrakesAndSteering(int angle, uint speedIn, RPMS rpm);
 
 #endif
