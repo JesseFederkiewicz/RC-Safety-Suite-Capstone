@@ -98,7 +98,7 @@ void SetMotorSpeeds(MotorDuties duties)
 }
 
 // sets all directions for both sets of motors
-void SetMotorDirections(MotorDirection leftDirection, MotorDirection rightDirection) 
+void SetMotorDirections(MotorDirection leftDirection, MotorDirection rightDirection)
 {
 	gpio_set_level(leftDirControlPin, leftDirection);
 	gpio_set_level(rightDirControlPin, rightDirection);

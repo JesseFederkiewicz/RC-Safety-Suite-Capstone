@@ -214,11 +214,9 @@ void Main()
 {
 	Serial.begin(115200);
 	Serial2.begin(115200);
-	//Serial2.begin(115200); 
-
-	GroundSpeedSensorInit();
 
 	// call all Inits
+	//GroundSpeedSensorInit();
 	// InitWiFi();
 	InitMotors();
 	InitEncoders();
@@ -242,6 +240,7 @@ void Main()
 		//ReadSerialPayload();
 		if (intFlag)
 		{
+			//GetDirections(&rpms);
 			rpms = GetRPMS();
 
 			portENTER_CRITICAL(&timerMux);
@@ -258,8 +257,8 @@ void Main()
 			int16_t ret = GetGroundSpeedCounterVal();
 
 			//Serial.println(ret);
-			DrivingWithBrakesAndSteering(_intendedAngle, _intendedSpeed, rpms);
+			Drive(_intendedAngle, _intendedSpeed, rpms);
 		}
-		/*DrivingWithBrakesAndSteering(_intendedAngle, _intendedSpeed, rpms);*/
+
 	}
 }

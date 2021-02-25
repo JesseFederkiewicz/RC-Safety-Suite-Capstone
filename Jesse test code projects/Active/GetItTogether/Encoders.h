@@ -3,6 +3,7 @@
 #ifndef _ENCODERS_h
 #define _ENCODERS_h
 
+
 #include "Motors.h"
 #include "driver/pcnt.h"
 #include "driver/gpio.h"
@@ -16,20 +17,32 @@ typedef struct Encoder_Settings {
 	pcnt_unit_t pcntUnit;                // which PCNT unit will the encoder input to
 };
 
+
 typedef struct RPMS {
 	float FL_RPM;
 	float FR_RPM;
 	float BL_RPM;
 	float BR_RPM;
+	Movement FL_Wheel_movement;
+	Movement FR_Wheel_movement;
+	Movement BL_Wheel_movement;
+	Movement BR_Wheel_movement;
+};
+
+typedef struct EncoderReadings {
+	int16_t FL_Encoder1;
+	int16_t FL_Encoder2;
+	int16_t FR_Encoder1;
+	int16_t FR_Encoder2;
+	int16_t BL_Encoder1;
+	int16_t BL_Encoder2;
+	int16_t BR_Encoder1;
+	int16_t BR_Encoder2;
 };
 
 void InitEncoders();
 void TimerInterruptInit(void (*intFunc) (void));
 RPMS GetRPMS();
-
-
-//
-
-
+void GetDirections(RPMS* rpm);
 
 #endif
