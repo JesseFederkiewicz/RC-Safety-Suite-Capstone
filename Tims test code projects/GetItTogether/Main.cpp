@@ -5,217 +5,137 @@
 
 #include "Main.h"
 
-// interrupt timer stuff:
-volatile bool intFlag = false; // flag for use in main for actual code to run every interrupt interval
-portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED; // used for syncing main and isr, ignore this red squiggle, still works
-
-// timer ISR, trips a flag to use in main
-void IRAM_ATTR TimerInt()
-{
-	portENTER_CRITICAL_ISR(&timerMux);
-	intFlag = true;
-	portEXIT_CRITICAL_ISR(&timerMux);
-}
-
 // values for driving
 int _intendedAngle = 0;
 int _intendedSpeed = 0;
 int _timeStamp = 1;
+RPMS rpms = { 0,0,0,0,stopped,stopped,stopped,stopped };
+
+// interrupt stuff:
+volatile bool timerIntFlag = false;	// flag for use in main for actual code to run every interrupt interval
+volatile bool encIntFlag = false;
+
+portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;   // used for syncing main and isr, ignore this red squiggle, still works
+portMUX_TYPE encoderMux = portMUX_INITIALIZER_UNLOCKED;
+
+// Quadrature Encoder Matrix courtesy of: https://cdn.sparkfun.com/datasheets/Robotics/How%20to%20use%20a%20quadrature%20encoder.pdf
+Movement QEM[16] = { stopped,backward,forward,X,
+					 forward,stopped,X,backward,
+					 backward,X,stopped,forward,
+					 X,forward,backward,stopped };
+
+// values for determining the direction of wheel spin using the matrix above
+int LFvalOld = 0;
+int LFvalNew = 0;
+int RFvalOld = 0;
+int RFvalNew = 0;
+int RRvalOld = 0;
+int RRvalNew = 0;
+int LRvalOld = 0;
+int LRvalNew = 0;
+
+// timer ISR
+void IRAM_ATTR TimerInt()
+{
+	portENTER_CRITICAL_ISR(&timerMux);
+	timerIntFlag = true;
+	portEXIT_CRITICAL_ISR(&timerMux);
+}
+
+// helper function for encoder directions
+void GetWheelDir(int* oldval, int* newVal, Movement* wheelDir, uint8_t enc1, uint8_t enc2)
+{
+	// store previous reding
+	*oldval = *newVal;
+
+	// get new reading and convert binary input to decimal value
+	*newVal = digitalRead(enc1) * 2 + digitalRead(enc2);
+
+	// get direction from matrix using pattern of old and new values
+	Movement temp = QEM[*oldval * 4 + *newVal];
+
+	// ignore invalid readings
+	if (temp == X || temp == stopped) return;
+
+	*wheelDir = temp;
+}
+
+// Encoder ISRs:
+
+void IRAM_ATTR EncoderIntLF()
+{
+	GetWheelDir(&LFvalOld, &LFvalNew, &rpms.FL_Wheel_movement, GPIO_NUM_34, GPIO_NUM_32);
+	portENTER_CRITICAL_ISR(&encoderMux);
+	encIntFlag = true;
+	portEXIT_CRITICAL_ISR(&encoderMux);
+}
+
+void IRAM_ATTR EncoderIntRF()
+{
+	GetWheelDir(&RFvalOld, &RFvalNew, &rpms.FR_Wheel_movement, GPIO_NUM_33, GPIO_NUM_35);
+	portENTER_CRITICAL_ISR(&encoderMux);
+	encIntFlag = true;
+	portEXIT_CRITICAL_ISR(&encoderMux);
+}
+
+void IRAM_ATTR EncoderIntRR()
+{
+	GetWheelDir(&RRvalOld, &RRvalNew, &rpms.BR_Wheel_movement, GPIO_NUM_25, GPIO_NUM_14);
+	portENTER_CRITICAL_ISR(&encoderMux);
+	encIntFlag = true;
+	portEXIT_CRITICAL_ISR(&encoderMux);
+}
+
+void IRAM_ATTR EncoderIntLR()
+{
+	GetWheelDir(&LRvalOld, &LRvalNew, &rpms.BL_Wheel_movement, GPIO_NUM_27, GPIO_NUM_26);
+	portENTER_CRITICAL_ISR(&encoderMux);
+	encIntFlag = true;
+	portEXIT_CRITICAL_ISR(&encoderMux);
+}
 
 void ReadSerialPayload()
 {
 	String payload = "";
 
-	while (Serial2.available()) {
-		Serial.printf("%c", Serial2.read());
+	if (Serial2.available())
+	{
+		payload = Serial2.readStringUntil('!');
+
+		if (payload.length() < 12) return;
+
+		payload.trim();
+
+		//Serial.println(payload);
+
+		JSONVar jason = JSON.parse(payload);
+
+		int tempStamp = atoi(jason["t"]);
+
+		if (tempStamp > _timeStamp || (_timeStamp - tempStamp > 5000))
+		{
+			_intendedAngle = atoi(jason["a"]);
+			_intendedSpeed = atoi(jason["s"]);
+			_timeStamp = tempStamp;
+
+			//Serial.println(_intendedAngle);
+			//Serial.println(_intendedSpeed);
+			//Serial.println(_timeStamp);
+			//Serial.println();
+		}
 	}
-
-	//// create buffer for read
-	////char* buff = "";
-	//int i = 0;
-	//String payload = "";
-
-	//uint8_t c[40];
-	//char check = Serial1.read();
-	////Serial.print(c);
-	//if (check == '{')
-	//{
-	//	c[0] = '{';
-	//	while (c[i] != '}' && c[i] >= '"' && c[i] <= '}')
-	//	{
-	//		c[i] = Serial1.read();
-	//		payload += c[i];
-	//		Serial.print(c[i]);
-	//	}
-	//}
-
-	//for (int x = 0; x < 41; x++)
-	//{
-	//	Serial.printf("%c", c[i]);
-	//}
-
-	//Serial.println();
-	//Serial.println();
-
-	//if (Serial1.available())
-	//{
-	//	char c;
-	//	while (c != '}')
-	//	{
-	//		c = (char)Serial1.read();
-	//		payload += c;
-	//		Serial.print(c);
-	//	} 		
-
-	//	JSONVar jason = JSON.parse(payload);
-	//	Serial.println(payload);
-	//	Serial.println("test");
-	//}
-
-
-	////Get data if timestamp has changed
-	//int tempStamp = atoi(jason["t"]);
-
-	//if (tempStamp > _timeStamp || (_timeStamp - tempStamp > 5000))
-	//{
-	//	_intendedAngle = atoi(jason["a"]);
-	//	_intendedSpeed = atoi(jason["s"]);
-	//	_timeStamp = tempStamp;
-
-	//	Serial.println(_timeStamp);
-	//	return;
-	//}
-
-
-	// read up to 40 byte
-	//uint pos = Serial1.readBytes(buff, 40);
-
-	//bool inPayload = false;
-
-	//for (int i = 0; i < pos; i++)
-	//{
-	//	if (buff[i] == '{' || inPayload)
-	//	{
-	//		inPayload = true;
-
-	//		payload += (char)buff[i];
-
-	//		if (buff[i] == '}')
-	//		{
-	//			JSONVar jason = JSON.parse(payload);
-
-	//			Serial.println(payload);
-
-	//			//Get data if timestamp has changed
-	//			int tempStamp = atoi(jason["t"]);
-
-	//			if (tempStamp > _timeStamp || (_timeStamp - tempStamp > 5000))
-	//			{
-	//				_intendedAngle = atoi(jason["a"]);
-	//				_intendedSpeed = atoi(jason["s"]);
-	//				_timeStamp = tempStamp;
-	//				
-	//				//Serial.println(_intendedAngle);
-	//				//Serial.println(_intendedSpeed);
-	//				//Serial.println(_timeStamp);
-	//				return;
-	//			}
-	//		}
-	//	}
-	//}
-
-
-	//if (payload2 != "" && payload2 != " ")
-	//{
-	//	//Parse response into our boy jason
-	//	JSONVar jason = JSON.parse(payload2);
-
-	//	//Get data if timestamp has changed
-	//	int tempStamp = atoi(jason["t"]);
-
-	//	if (_timeStamp != tempStamp && tempStamp != 0)
-	//	{
-	//		_intendedAngle = atoi(jason["a"]);
-	//		_intendedSpeed = atoi(jason["s"]);
-	//		_timeStamp = tempStamp;
-
-	//		//Serial.println(_intendedAngle);
-	//		//Serial.println(_intendedSpeed);
-	//		//Serial.println(_timeStamp);
-	//	}
-	//}
-	//else {
-	//	_intendedSpeed = 0;
-	//}
-
-	//String payload1 = Serial2.readStringUntil(0);
-	//Serial.println(payload1);
-	//if (payload1 != "" && payload2 != " ")
-	//{
-	//	//Parse response into our boy jason
-	//	JSONVar jason = JSON.parse(payload1);
-
-	//	//Get data if timestamp has changed
-	//	int tempStamp = atoi(jason["t"]);
-
-	//	if (_timeStamp != tempStamp && tempStamp != 0)
-	//	{
-	//		_intendedAngle = atoi(jason["a"]);
-	//		_intendedSpeed = atoi(jason["s"]);
-	//		_timeStamp = tempStamp;
-
-	//		//Serial.println(_intendedAngle);
-	//		//Serial.println(_intendedSpeed);
-	//		//Serial.println(_timeStamp);
-	//	}
-	//}
-	//else {
-	//	_intendedSpeed = 0;
-	//}
 }
 
 // Core 0 will be dedicated to getting data from database and 
 //  updating the values used for driving/steering
 void Core0Loop(void* param)
-{	
+{
 	for (;;)
 	{
-		//delay(10);
-		//ReadSerialPayload();
+		ReadSerialPayload();
 
-		//if (WiFi.status() == WL_CONNECTED)
-		//{
-		//	String payload = GrabData();
-		//	//Serial.println(payload);
-		//	if (payload == "-1" || payload == "" || payload == " ")
-		//	{
-		//		_intendedAngle = 0;
-		//		_intendedSpeed = 0;
-		//		_timeStamp = 0;
-		//	}
-		//	else
-		//	{
-		//		//Parse response into our boy jason
-		//		JSONVar jason = JSON.parse(payload);
-
-		//		//Get data if timestamp has changed
-		//		int tempStamp = atoi(jason["t"]);
-
-		//		if (_timeStamp != tempStamp && tempStamp != 0)
-		//		{
-		//			_intendedAngle = atoi(jason["a"]);
-		//			_intendedSpeed = atoi(jason["s"]);
-		//			_timeStamp = tempStamp;
-
-		//			//Serial.println(_intendedAngle);
-		//			//Serial.println(_intendedSpeed);
-		//			//Serial.println(_timeStamp);
-		//		}
-		//	}
-		//}
-		//else {
-		//	InitWiFi();
-		//}
+		//Here for now until more is done, if it spins too much guru error
+		delay(10);
 	}
 }
 
@@ -224,38 +144,45 @@ void Main()
 {
 	Serial.begin(115200);
 	Serial2.begin(115200);
-	//Serial2.begin(115200); 
 
-	// call all Inits
-	InitWiFi();
+	// call all Initializations
 	InitMotors();
-	InitEncoders();
+	InitEncoders(EncoderIntLF, EncoderIntRF, EncoderIntRR, EncoderIntLR);
 	TimerInterruptInit(TimerInt);
 
-	//// assign loop function for core 0
-	//TaskHandle_t core0Task; // task handle for core 0 task
-	//xTaskCreatePinnedToCore(
-	//	Core0Loop,   /* Function to run on core 0*/
-	//	"core0Task", /* Name of the task */
-	//	10000,       /* Stack size in words */
-	//	NULL,        /* Task input parameter */
-	//	0,           /* Priority of the task */
-	//	&core0Task,  /* Task handle. */
-	//	0);          /* Core where the task should run */
-
-	RPMS rpms;
+	// assign loop function for core 0
+	TaskHandle_t core0Task; // task handle for core 0 task
+	xTaskCreatePinnedToCore(
+		Core0Loop,   /* Function to run on core 0*/
+		"core0Task", /* Name of the task */
+		10000,       /* Stack size in words */
+		NULL,        /* Task input parameter */
+		0,           /* Priority of the task */
+		&core0Task,  /* Task handle. */
+		0);          /* Core where the task should run */
 
 	for (;;)
 	{
-		ReadSerialPayload();
-		if (intFlag)
+		if (timerIntFlag)
 		{
-			rpms = GetRPMS();
-
 			portENTER_CRITICAL(&timerMux);
-			intFlag = false;
+			timerIntFlag = false;
 			portEXIT_CRITICAL(&timerMux);
+
+			rpms = GetRPMS();
+			Drive(_intendedAngle, _intendedSpeed, rpms);
 		}
-		DrivingWithBrakesAndSteering(_intendedAngle, _intendedSpeed, rpms);
+
+		if (encIntFlag)
+		{
+			portENTER_CRITICAL_ISR(&encoderMux);
+			encIntFlag = false;
+			portEXIT_CRITICAL_ISR(&encoderMux);
+
+			Serial.printf("\nLF: %d", rpms.FL_Wheel_movement);		
+			Serial.printf("\nRF: %d", rpms.FR_Wheel_movement);	
+			Serial.printf("\nRR: %d", rpms.BR_Wheel_movement);		
+			Serial.printf("\nLR: %d", rpms.BL_Wheel_movement);		
+		}
 	}
 }

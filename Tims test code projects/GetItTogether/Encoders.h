@@ -21,9 +21,14 @@ typedef struct RPMS {
 	float FR_RPM;
 	float BL_RPM;
 	float BR_RPM;
+	Movement FL_Wheel_movement;
+	Movement FR_Wheel_movement;
+	Movement BL_Wheel_movement;
+	Movement BR_Wheel_movement;
 };
 
-void InitEncoders();
+
+void InitEncoders(void (*LFintISR) (void), void (*RFintISR) (void), void (*RRintISR) (void), void (*LRintISR) (void));
 void TimerInterruptInit(void (*intFunc) (void));
 RPMS GetRPMS();
 

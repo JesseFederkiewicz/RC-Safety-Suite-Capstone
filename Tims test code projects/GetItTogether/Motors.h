@@ -21,6 +21,13 @@ typedef enum MotorDirection {
 	Reverse = 1
 };
 
+typedef enum Movement {
+	forward,
+	backward,
+	stopped,
+	X
+};
+
 typedef struct MotorDuties
 {
 	float FL_Duty;

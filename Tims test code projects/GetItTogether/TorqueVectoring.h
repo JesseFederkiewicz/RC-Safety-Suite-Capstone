@@ -6,12 +6,18 @@
 #include "Motors.h"
 #include "Encoders.h"
 
-typedef enum Vehicle_Movement {
-	forward,
-	backward,
-	stopped
+typedef enum Accel_Or_Decel{
+	accel,
+	decel
 };
 
-void DrivingWithBrakesAndSteering(int angle, uint speedIn, RPMS rpm);
+typedef struct Current_Wheel_Direction {
+	Accel_Or_Decel FrontLeft;
+	Accel_Or_Decel BackLeft;
+	Accel_Or_Decel FrontRight;
+	Accel_Or_Decel BackRight;
+};
+
+void Drive(int angle, uint speedIn, RPMS rpm);
 
 #endif

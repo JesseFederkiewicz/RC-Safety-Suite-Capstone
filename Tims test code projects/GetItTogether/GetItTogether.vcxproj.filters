@@ -30,9 +30,6 @@
     <ClCompile Include="Motors.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Wireless.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="TorqueVectoring.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -45,9 +42,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Motors.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Wireless.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__vm\.GetItTogether.vsarduino.h">
