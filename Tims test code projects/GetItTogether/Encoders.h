@@ -17,6 +17,7 @@ typedef struct Encoder_Settings {
 };
 
 typedef struct RPMS {
+	int GroundSpeedCount;
 	float FL_RPM;
 	float FR_RPM;
 	float BL_RPM;

@@ -1,5 +1,5 @@
 // 
-// 
+// code for the slave board that sends post requests to the database and commands to the master board
 // 
 
 #include "SerialSender.h"
@@ -11,9 +11,21 @@
 HTTPClient _mainThread;
 HTTPClient _secondThread;
 
+String serverURL = "https://coolstuffliveshere.com/Rc_Safety_Suite/Main_Web/webservice.php";
+
 bool _mainCoreSending = false;
 bool _secondCoreSending = true;
 int _lastTime = 0;
+
+// values to send up to the database in post request
+int FL_RPM = 0;
+int FR_RPM = 0;
+int BL_RPM = 0;
+int BR_RPM = 0;
+int GSP = 0;
+int TC = 0;
+int ABS = 0;
+int BIP = 0;
 
 String GrabData(bool isMainThread)
 {
@@ -21,15 +33,32 @@ String GrabData(bool isMainThread)
 
 	int httpCode = -1;
 
+	// crashes program:
+	/*char *buff;
+	sprintf("carID=1&GSP=%d&FL_RPM=%d&FR_RPM=%d&BL_RPM=%d&BR_RPM=%d&TC=%d&ABS=%d&BIP=%d", buff, GSP, FL_RPM, FR_RPM, BL_RPM, TC, ABS, BIP);*/
+
+	// build string for post request
+	String PostString = "carID=1";	
+	PostString +="&GSP=0";//+ GSP;       // need string interpolation or some such
+	PostString +="&FL_RPM=0";//+ FL_RPM;
+	PostString +="&FR_RPM=0";//+ FR_RPM;
+	PostString +="&BL_RPM=0";//+ BL_RPM;
+	PostString +="&BR_RPM=0";//+ BR_RPM;
+	PostString +="&TC=0";//+ TC;
+	PostString +="&ABS=0";//+ ABS;
+	PostString += "&BIP=0";// +BIP;
+
+	Serial.println(PostString);
+
 	if (isMainThread)
 	{
 		_mainThread.addHeader("Content-Type", "application/x-www-form-urlencoded");
-		httpCode = _mainThread.POST("action=GrabWebToCar&carID=1");
+		httpCode = _mainThread.POST(PostString);
 	}
 	else
 	{
 		_secondThread.addHeader("Content-Type", "application/x-www-form-urlencoded");
-		httpCode = _secondThread.POST("action=GrabWebToCar&carID=1");
+		httpCode = _secondThread.POST(PostString);
 	}
 	if (httpCode == HTTP_CODE_OK)
 	{
@@ -96,7 +125,7 @@ void SendPayload(String payload)
 void Core0Grab(void* param)
 {
 	Serial2.println("START second Core");
-	_secondThread.begin("https://coolstuffliveshere.com/Rc_Safety_Suite/Main_Web/webservice.php");
+	_secondThread.begin(serverURL);
 
 	for (;;)
 	{
@@ -113,7 +142,7 @@ void Core0Grab(void* param)
 void Main()
 {
 	// Init Serial2 Monitor
-	//Serial.begin(115200);
+	Serial.begin(115200);
 	Serial2.begin(115200);
 
 	//char* jesseSsid = "Cappy";
@@ -168,7 +197,7 @@ void Main()
 
 	delay(450);
 
-	_mainThread.begin("https://coolstuffliveshere.com/Rc_Safety_Suite/Main_Web/webservice.php");
+	_mainThread.begin(serverURL);
 	int i = 0;
 	for (;;)
 	{
@@ -177,6 +206,7 @@ void Main()
 
 		_mainCoreSending = true;
 		String payload = GrabData(true);
+		Serial.println(payload);
 		_mainCoreSending = false;
 		SendPayload(payload);
 	}

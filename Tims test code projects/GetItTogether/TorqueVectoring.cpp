@@ -19,6 +19,16 @@ Current_Wheel_Direction curWheelDirection;
 MotorDirection leftDir;
 MotorDirection rightDir;
 
+// this function will drive the vehicle and 
+// apply brakes when zero speedSet is requested and rpms are still high
+void Drive(int angle, uint speedRequest, RPMS rpm)
+{
+	Steering(angle, speedRequest, rpm);
+
+	/*if (speedRequest == 0)
+		Brake(rpm);*/
+}
+
 void Steering(int angle, uint speedRequest, RPMS rpm)
 {
 	const float dutyMin = 50.0; // the lowest duty cycle to spin the motors at, as any less wont turn them
@@ -45,7 +55,7 @@ void Steering(int angle, uint speedRequest, RPMS rpm)
 		firstTime = false;
 	}
 
-	const int MAXRPM = 1300;
+	const int MAXRPM = 1800;
 	const int FL_SPEED = MAXRPM / speedRequest;
 
 	//			0
@@ -580,15 +590,6 @@ void Brake(RPMS rpm)
 	}
 }
 
-// this function will drive the vehicle and 
-// apply brakes when zero speedSet is requested and rpms are still high
-void Drive(int angle, uint speedRequest, RPMS rpm)
-{
-	Steering(angle, speedRequest, rpm);
-
-	/*if (speedRequest == 0)
-		Brake(rpm);*/
-}
 //
 //// this function will drive the vehicle and 
 //// apply brakes when zero speedSet is requested and rpms are still high

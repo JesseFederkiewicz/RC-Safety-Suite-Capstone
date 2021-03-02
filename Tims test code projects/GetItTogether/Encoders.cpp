@@ -261,12 +261,12 @@ void TimerInterruptInit(void (*intFunc) (void))
 }
 
 // calculates motor rpm based on encoder readings
-// RPM = (encoder count)/(211.2 counts per revolution)*(60 rpm)*(2 [only using 1 encoder signal])*(_timerClk/intTriggerPeriodUs);	
+// RPM = (encoder count)/(211.2 counts per revolution)*(60 rpm)*(_timerClk/intTriggerPeriodUs);	
 // motor specs: https://www.pololu.com/product/4861
 float CalcRMP(uint encoderVal)
 {
-	const int _timerClk = 80000000 / _timerPrescale;
-	return encoderVal / 211.2 * 120.0 * (float)(_timerClk / (_intTriggerPeriod_ms * 1000.0));
+	const int _timerClk = 80000000 / _timerPrescale;	
+	return encoderVal / 211.2 * 60.0 * (float)(_timerClk / (_intTriggerPeriod_ms * 1000.0));
 }
 
 // reads all encoder values from the pulse counter modules, clears the counters
@@ -277,45 +277,38 @@ RPMS GetRPMS()
 	int16_t fr_Enc;
 	int16_t bl_Enc;
 	int16_t br_Enc;
-	//int16_t fl_Enc2;
-	//int16_t fr_Enc2;
-	//int16_t bl_Enc2;
-	//int16_t br_Enc2;
+	int16_t fl_Enc2;
+	int16_t fr_Enc2;
+	int16_t bl_Enc2;
+	int16_t br_Enc2;
 
 	RPMS rpmOutput;
 
 	pcnt_get_counter_value(FL_Encoder.pcntUnit, &fl_Enc);
 	pcnt_get_counter_value(FR_Encoder.pcntUnit, &fr_Enc);
 	pcnt_get_counter_value(BL_Encoder.pcntUnit, &bl_Enc);
-	pcnt_get_counter_value(BR_Encoder.pcntUnit, &br_Enc);
-	/*
+	pcnt_get_counter_value(BR_Encoder.pcntUnit, &br_Enc);	
 	pcnt_get_counter_value(FL_Encoder2.pcntUnit, &fl_Enc2);
 	pcnt_get_counter_value(FR_Encoder2.pcntUnit, &fr_Enc2);
 	pcnt_get_counter_value(BL_Encoder2.pcntUnit, &bl_Enc2);
 	pcnt_get_counter_value(BR_Encoder2.pcntUnit, &br_Enc2);
-	*/
-
-	rpmOutput.FL_RPM = CalcRMP(fl_Enc);
-	rpmOutput.FR_RPM = CalcRMP(fr_Enc);
-	rpmOutput.BL_RPM = CalcRMP(bl_Enc);
-	rpmOutput.BR_RPM = CalcRMP(br_Enc);
+	
+	rpmOutput.FL_RPM = CalcRMP(fl_Enc + fl_Enc2);
+	rpmOutput.FR_RPM = CalcRMP(fr_Enc + fr_Enc2);
+	rpmOutput.BL_RPM = CalcRMP(bl_Enc + bl_Enc2);
+	rpmOutput.BR_RPM = CalcRMP(br_Enc + br_Enc2);
 
 	// set wheel directions to stopped on 0 RPM
 	if (rpmOutput.FL_RPM == 0.0) {
-		//Serial.println("set LF stopped");
 		rpmOutput.FL_Wheel_movement = stopped;
 	}
-
 	if (rpmOutput.FR_RPM == 0.0) {
-		//Serial.println("set RF stopped");
 		rpmOutput.FR_Wheel_movement = stopped;
 	}
 	if (rpmOutput.BL_RPM == 0.0) {
-		//Serial.println("set RR stopped");
 		rpmOutput.BL_Wheel_movement = stopped;
 	}
 	if (rpmOutput.BR_RPM == 0.0) {
-		//Serial.println("set LR stopped");
 		rpmOutput.BR_Wheel_movement = stopped;
 	}
 	//Serial.printf("\n\nFL: %d - %d\n", fl_Enc, fl_Enc2);
