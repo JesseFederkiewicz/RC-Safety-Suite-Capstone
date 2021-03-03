@@ -34,6 +34,9 @@ int RRvalNew = 0;
 int LRvalOld = 0;
 int LRvalNew = 0;
 
+// value for the ground speed sensor to increment during interrupts
+int groundSpeedCount = 0;
+
 // timer ISR
 void IRAM_ATTR TimerInt()
 {
@@ -94,6 +97,12 @@ void IRAM_ATTR EncoderIntLR()
 	portEXIT_CRITICAL_ISR(&encoderMux);
 }
 
+// ground speed sensor ISR
+void IRAM_ATTR GroundSpeedISR()
+{
+	groundSpeedCount++;
+}
+
 void ReadSerialPayload()
 {
 	String payload = "";
@@ -149,6 +158,8 @@ void Main()
 	InitMotors();
 	InitEncoders(EncoderIntLF, EncoderIntRF, EncoderIntRR, EncoderIntLR);
 	TimerInterruptInit(TimerInt);
+	// attach interrupt for gound speed sensor on pin 15
+	attachInterrupt(15, GroundSpeedISR, RISING);
 
 	// assign loop function for core 0
 	TaskHandle_t core0Task; // task handle for core 0 task
@@ -170,7 +181,17 @@ void Main()
 			portEXIT_CRITICAL(&timerMux);
 
 			rpms = GetRPMS();
+
+			rpms.GroundSpeedCount = groundSpeedCount;
+			groundSpeedCount = 0;
+
 			Drive(_intendedAngle, _intendedSpeed, rpms);
+
+	/*		Serial.println("RPMS");
+			Serial.println(rpms.FL_RPM);
+			Serial.println(rpms.FR_RPM);
+			Serial.println(rpms.BL_RPM);
+			Serial.println(rpms.BR_RPM);*/
 		}
 
 		if (encIntFlag)
@@ -179,10 +200,10 @@ void Main()
 			encIntFlag = false;
 			portEXIT_CRITICAL_ISR(&encoderMux);
 
-			Serial.printf("\nLF: %d", rpms.FL_Wheel_movement);		
+		/*	Serial.printf("\nLF: %d", rpms.FL_Wheel_movement);		
 			Serial.printf("\nRF: %d", rpms.FR_Wheel_movement);	
 			Serial.printf("\nRR: %d", rpms.BR_Wheel_movement);		
-			Serial.printf("\nLR: %d", rpms.BL_Wheel_movement);		
+			Serial.printf("\nLR: %d", rpms.BL_Wheel_movement);	*/	
 		}
 	}
 }
