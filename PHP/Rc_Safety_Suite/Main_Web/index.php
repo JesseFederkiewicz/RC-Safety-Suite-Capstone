@@ -13,7 +13,7 @@ if( !isset($_SESSION["user"])) // not authenticated, does exist
 <html lang="en">
   <head>
   <link rel="stylesheet" href="style.css">
-    <title>ica04 - index</title>
+    <title>Index Page</title>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -24,7 +24,7 @@ if( !isset($_SESSION["user"])) // not authenticated, does exist
     <div class='hdr'>
       <h1 class='font-effect-3d text-center'>
         <!-- show user - if possible here -->
-        <?php echo "ica04 Authentication: {$_SESSION['user']}"; ?>
+        <?php echo "User: {$_SESSION['user']}"; ?>
       </h1>
     </div>
     <form action="login.php" method="post" id = "indexSite">
