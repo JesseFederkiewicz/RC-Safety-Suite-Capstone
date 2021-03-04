@@ -3,15 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Landing</title>
-</head>
-<body>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Landing Page</title>
+    <title>Tree Directories</title>
     <script src="//ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <style>
       @import url(//fonts.googleapis.com/css?family=Comfortaa|Raleway|Special+Elite|McLaren&effect=3d);
@@ -28,6 +20,7 @@
     <?php   
         listFolderFiles('.');
     ?>
+
 </body>
 </html>
 </body>

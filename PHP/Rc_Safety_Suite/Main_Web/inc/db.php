@@ -17,7 +17,7 @@ function mysqliConnect() {
 	//$mysqli=new mysqli( DB_HOST       DB_USER,    DB_PASS,    DB_NAME,  [ DB_PORT ], [ BP_UNIX_SOCKET ]);	
 
     // Fill me in for your connection... // 127.0.0.1
-    $mysqli = new mysqli( "localhost", "jfederki_Demo_User", "sTrOnG!P@ss", "jfederki_Rc_Safety_Suite_Capstone" );
+    $mysqli = new mysqli( "localhost", "coolstx5_PHPUser", "sTrOnG!P@ss", "coolstx5_Rc_Safety_Suite_Capstone" );
 
 	if ($mysqli -> connect_error) 			// if connection failed, update response with error codes and bail out
 	{

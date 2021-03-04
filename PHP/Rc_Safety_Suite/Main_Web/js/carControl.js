@@ -130,35 +130,12 @@ class JoystickController
 }
 
 $(document).ready ( () => {
-
-	//This all goes after button click that selects car
-	joyStick = new JoystickController("joyStick", document.querySelector("#joyBase").clientWidth / 2, 8);	//joystick now resizes based on how big base image is
+	joyStick = new JoystickController("joyStick", 64, 8);	
+	//joyStick = new JoystickController("joyStick", document.querySelector("#joyBase").clientWidth / 2, 8);
 
 	$('#carControl').hide();
 
-
-	// //Make user select car
-	// let selCar =  $('#selectCarNumber');
-	// $(selCar).html("");
-
-	// let select = document.createElement('select');
-	// $(select).prop({"name" : "carSelect"});
-	
-	//fetsh how many cars in database
 	GetCarCount();
-
-
-	//<input type = "button" name = "selCarBtn" value = "Lets Control This thing!" id = selCarBtnID>
-	//end of selection...
-
-	//After selection display controls
-
-	// let timsInternetInterval = 200;
-	// let jesseInternetInterval = 50;
-	// let interval = timsInternetInterval;
-	// setInterval(SendData, interval);   
-	// //setInterval(FetchData, interval * .8);
-
 });
 
 function update()
@@ -216,15 +193,32 @@ function SetUpItems (data, response)
 	$(addCarBtn).prop({"type" : "button", "id" : "addCarBtn", "value" : "Add Car #" + (data['data'] + 1)});
 	$(addCarBtnDiv).append(addCarBtn);
 
+	//Option to delete a car
+	let delCarBtnDiv = $('#addCarBtnDIV');			//change div TODO?
+	let delCarBtn = document.createElement("input");
+	$(delCarBtn).prop({"type" : "button", "id" : "addCarBtn", "value" : "Delete Car #" + $(select).val()});
+	$(delCarBtnDiv).append(delCarBtn);
+
 	//Add select changed event handler to update button
 	$(select).change( () => {
 		$(selCarBtn).prop("value", "Control Car #" + $(select).val());
+		$(delCarBtn).prop("value", "Delete Car #" + $(select).val());
 	});
+
+
 
 	$(addCarBtn).click ( () => {
 		let sendData = {};
 		sendData['action'] = "addNewCar";
 		sendData['carID'] = data['data'] + 1;
+
+		AjaxRequest('./webservice.php', 'POST', sendData, 'json', GetCarCount, Fail)
+	});
+
+	$(delCarBtn).click ( () => {
+		let sendData = {};
+		sendData['action'] = "deleteCar";
+		sendData['carID'] = $(select).val();
 
 		AjaxRequest('./webservice.php', 'POST', sendData, 'json', GetCarCount, Fail)
 	});
@@ -237,10 +231,7 @@ function SetUpItems (data, response)
 
 		AjaxRequest('./webservice.php', 'POST', data, 'json', DisplayControls, Fail)
 
-
-		let timsInternetInterval = 200;
-		let jesseInternetInterval = 50;
-		let interval = timsInternetInterval;
+		let interval = 200;
 		setInterval(SendData, interval);
 		loop();
 	
@@ -269,11 +260,13 @@ function HandleStatus(data, response)
 //////////////////////////////////////////////
 //  function Fail (errorMessage)
 //  Args:
-//          errormessage : ajax response data
+//          errorData : ajax response data
+//			message   : message
 //////////////////////////////////////////////
-function Fail(errorMessage)
+function Fail(errorData, message)
 {
     $('#connectionStatus').html("BAD AJAX REQUEST!");
+	console.log(message);
 }
 
 function CarSimReq(data, response)
