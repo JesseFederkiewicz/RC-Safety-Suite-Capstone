@@ -27,6 +27,10 @@ int TC = 0;
 int ABS = 0;
 int BIP = 0;
 
+// global string for holding the data received from the car 
+// to posted to the database, will already be in the right format
+String postData = "";
+
 String GrabData(bool isMainThread)
 {
 	String payload = "";
@@ -39,14 +43,7 @@ String GrabData(bool isMainThread)
 
 	// build string for post request
 	String PostString = "carID=1";	
-	PostString +="&GSP=0";//+ GSP;       // need string interpolation or some such
-	PostString +="&FL_RPM=0";//+ FL_RPM;
-	PostString +="&FR_RPM=0";//+ FR_RPM;
-	PostString +="&BL_RPM=0";//+ BL_RPM;
-	PostString +="&BR_RPM=0";//+ BR_RPM;
-	PostString +="&TC=0";//+ TC;
-	PostString +="&ABS=0";//+ ABS;
-	PostString += "&BIP=0";// +BIP;
+	PostString += postData;
 
 	Serial.println(PostString);
 
@@ -115,16 +112,17 @@ String GrabData(bool isMainThread)
 
 void SendPayload(String payload) 
 {
+	// read data from car
+	if (Serial1.available())
+		postData = Serial1.readStringUntil('!');
+
+	// send payload to car
 	if (Serial2.availableForWrite())
-	{
-		//Serial.println(payload);
-		Serial2.println(payload + "!");
-	}
+		Serial2.print(payload + "!");
 }
 
 void Core0Grab(void* param)
 {
-	Serial2.println("START second Core");
 	_secondThread.begin(serverURL);
 
 	for (;;)
@@ -135,6 +133,7 @@ void Core0Grab(void* param)
 		_secondCoreSending = true;
 		String payload = GrabData(false);
 		_secondCoreSending = false;
+
 		SendPayload(payload);		
 	}
 }
@@ -144,7 +143,8 @@ void Main()
 	// Init Serial2 Monitor
 	Serial.begin(115200);
 	Serial2.begin(115200);
-
+	Serial1.begin(115200, SERIAL_8N1, 16);
+	
 	//char* jesseSsid = "Cappy";
 	//char* jessePass = "ThisIs@nAdequateP@ss123";
 	//WiFi.begin(jesseSsid, jessePass);
@@ -206,8 +206,8 @@ void Main()
 
 		_mainCoreSending = true;
 		String payload = GrabData(true);
-		Serial.println(payload);
 		_mainCoreSending = false;
+
 		SendPayload(payload);
 	}
 }

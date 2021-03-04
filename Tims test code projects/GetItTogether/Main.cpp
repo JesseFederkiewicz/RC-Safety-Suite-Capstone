@@ -107,13 +107,14 @@ void ReadSerialPayload()
 {
 	String payload = "";
 
+	// read payload from slave board
 	if (Serial2.available())
 	{
 		payload = Serial2.readStringUntil('!');
 
 		if (payload.length() < 12) return;
 
-		payload.trim();
+		//payload.trim();
 
 		//Serial.println(payload);
 
@@ -153,6 +154,7 @@ void Main()
 {
 	Serial.begin(115200);
 	Serial2.begin(115200);
+	Serial1.begin(115200, SERIAL_8N1, 9, 17);
 
 	// call all Initializations
 	InitMotors();
@@ -172,6 +174,10 @@ void Main()
 		&core0Task,  /* Task handle. */
 		0);          /* Core where the task should run */
 
+	// only send serial data every n intervals, dont want to send too fast
+	int sendTimer = 0;
+	const int sendInterval = 10;
+
 	for (;;)
 	{
 		if (timerIntFlag)
@@ -187,11 +193,31 @@ void Main()
 
 			Drive(_intendedAngle, _intendedSpeed, rpms);
 
-	/*		Serial.println("RPMS");
-			Serial.println(rpms.FL_RPM);
-			Serial.println(rpms.FR_RPM);
-			Serial.println(rpms.BL_RPM);
-			Serial.println(rpms.BR_RPM);*/
+			//Serial.println("RPMS");
+			//Serial.println(rpms.FL_RPM);
+			//Serial.println(rpms.FR_RPM);
+			//Serial.println(rpms.BL_RPM);
+			//Serial.println(rpms.BR_RPM);
+
+			// send data to slave board
+			if (Serial1.availableForWrite() && sendTimer >= sendInterval)
+			{
+				// build the string in a format ready to be posted up to the webservice
+				String data = "&FL_RPM="+ String(rpms.FL_RPM, 2);
+				data += "&FR_RPM=" + String(rpms.FR_RPM, 2); 
+				data += "&BL_RPM=" + String(rpms.BL_RPM, 2);
+				data+= "&BR_RPM=" + String(rpms.BR_RPM, 2);
+
+				//// need to add:
+				//data += "&GSP="
+				//data += "&TC=" 
+				//data += "&ABS="
+				//data += "&BIP=" 
+
+				Serial1.print(data + "!");
+				sendTimer = 0;
+			}
+			sendTimer++;
 		}
 
 		if (encIntFlag)
