@@ -37,7 +37,7 @@ int LRvalNew = 0;
 // value for the ground speed sensor to increment during interrupts
 int groundSpeedCount = 0;
 
-// timer ISR
+// timer ISR, all functionality in main
 void IRAM_ATTR TimerInt()
 {
 	portENTER_CRITICAL_ISR(&timerMux);
@@ -203,10 +203,11 @@ void Main()
 			if (Serial1.availableForWrite() && sendTimer >= sendInterval)
 			{
 				// build the string in a format ready to be posted up to the webservice
-				String data = "&FL_RPM="+ String(rpms.FL_RPM, 2);
-				data += "&FR_RPM=" + String(rpms.FR_RPM, 2); 
-				data += "&BL_RPM=" + String(rpms.BL_RPM, 2);
-				data+= "&BR_RPM=" + String(rpms.BR_RPM, 2);
+				String data = "carID=1";
+				data += "&FL_RPM=" + String((int)rpms.FL_RPM);
+				data += "&FR_RPM=" + String((int)rpms.FR_RPM);
+				data += "&BL_RPM=" + String((int)rpms.BL_RPM);
+				data += "&BR_RPM=" + String((int)rpms.BR_RPM);
 
 				//// need to add:
 				//data += "&GSP="
