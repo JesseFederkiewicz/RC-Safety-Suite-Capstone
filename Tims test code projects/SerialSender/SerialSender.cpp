@@ -110,7 +110,7 @@ void SendReceiveSerial(String payload)
 		_postString = Serial1.readStringUntil('!');
 
 	//Serial.println(payload);
-	//println(_postString);
+	Serial.println(_postString);
 
 	// send payload to car
 	if (Serial2.availableForWrite()) {
