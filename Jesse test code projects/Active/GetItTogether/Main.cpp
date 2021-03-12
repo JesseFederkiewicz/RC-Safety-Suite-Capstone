@@ -9,7 +9,11 @@
 int _intendedAngle = 0;
 int _intendedSpeed = 0;
 int _timeStamp = 1;
-RPMS rpms = { 0,0,0,0,stopped,stopped,stopped,stopped };
+RPMS _rpms = { 0,0,0,0,stopped,stopped,stopped,stopped };
+int _absActive = 0;
+int _tcActive = 0;
+int _bip = 0;
+
 
 // interrupt stuff:
 volatile bool timerIntFlag = false;	// flag for use in main for actual code to run every interrupt interval
@@ -35,9 +39,9 @@ int LRvalOld = 0;
 int LRvalNew = 0;
 
 // value for the ground speed sensor to increment during interrupts
-int groundSpeedCount = 0;
+int _groundSpeedCount = 0;
 
-// timer ISR
+// timer ISR, all functionality in main
 void IRAM_ATTR TimerInt()
 {
 	portENTER_CRITICAL_ISR(&timerMux);
@@ -67,40 +71,40 @@ void GetWheelDir(int* oldval, int* newVal, Movement* wheelDir, uint8_t enc1, uin
 
 void IRAM_ATTR EncoderIntLF()
 {
-	GetWheelDir(&LFvalOld, &LFvalNew, &rpms.FL_Wheel_movement, GPIO_NUM_34, GPIO_NUM_32);
-	portENTER_CRITICAL_ISR(&encoderMux);
-	encIntFlag = true;
-	portEXIT_CRITICAL_ISR(&encoderMux);
+	GetWheelDir(&LFvalOld, &LFvalNew, &_rpms.FL_Wheel_movement, GPIO_NUM_34, GPIO_NUM_32);
+	//portENTER_CRITICAL_ISR(&encoderMux);
+	//encIntFlag = true;
+	//portEXIT_CRITICAL_ISR(&encoderMux);
 }
 
 void IRAM_ATTR EncoderIntRF()
 {
-	GetWheelDir(&RFvalOld, &RFvalNew, &rpms.FR_Wheel_movement, GPIO_NUM_33, GPIO_NUM_35);
-	portENTER_CRITICAL_ISR(&encoderMux);
-	encIntFlag = true;
-	portEXIT_CRITICAL_ISR(&encoderMux);
+	GetWheelDir(&RFvalOld, &RFvalNew, &_rpms.FR_Wheel_movement, GPIO_NUM_33, GPIO_NUM_35);
+	//portENTER_CRITICAL_ISR(&encoderMux);
+	//encIntFlag = true;
+	//portEXIT_CRITICAL_ISR(&encoderMux);
 }
 
 void IRAM_ATTR EncoderIntRR()
 {
-	GetWheelDir(&RRvalOld, &RRvalNew, &rpms.BR_Wheel_movement, GPIO_NUM_25, GPIO_NUM_14);
-	portENTER_CRITICAL_ISR(&encoderMux);
-	encIntFlag = true;
-	portEXIT_CRITICAL_ISR(&encoderMux);
+	GetWheelDir(&RRvalOld, &RRvalNew, &_rpms.BR_Wheel_movement, GPIO_NUM_25, GPIO_NUM_14);
+	//portENTER_CRITICAL_ISR(&encoderMux);
+	//encIntFlag = true;
+	//portEXIT_CRITICAL_ISR(&encoderMux);
 }
 
 void IRAM_ATTR EncoderIntLR()
 {
-	GetWheelDir(&LRvalOld, &LRvalNew, &rpms.BL_Wheel_movement, GPIO_NUM_27, GPIO_NUM_26);
-	portENTER_CRITICAL_ISR(&encoderMux);
-	encIntFlag = true;
-	portEXIT_CRITICAL_ISR(&encoderMux);
+	GetWheelDir(&LRvalOld, &LRvalNew, &_rpms.BL_Wheel_movement, GPIO_NUM_27, GPIO_NUM_26);
+	//portENTER_CRITICAL_ISR(&encoderMux);
+	//encIntFlag = true;
+	//portEXIT_CRITICAL_ISR(&encoderMux);
 }
 
 // ground speed sensor ISR
 void IRAM_ATTR GroundSpeedISR()
 {
-	groundSpeedCount++;
+	_groundSpeedCount++;
 }
 
 void ReadSerialPayload()
@@ -176,7 +180,7 @@ void Main()
 
 	// only send serial data every n intervals, dont want to send too fast
 	int sendTimer = 0;
-	const int sendInterval = 10;
+	const int sendInterval = 12;
 
 	for (;;)
 	{
@@ -186,50 +190,51 @@ void Main()
 			timerIntFlag = false;
 			portEXIT_CRITICAL(&timerMux);
 
-			rpms = GetRPMS();
+			GetRPMS(&_rpms);
 
-			rpms.GroundSpeedCount = groundSpeedCount;
-			groundSpeedCount = 0;
+			_rpms.GroundSpeedCount = _groundSpeedCount;
 
-			Drive(_intendedAngle, _intendedSpeed, rpms);
+			Drive(_intendedAngle, _intendedSpeed, _rpms);
 
 			//Serial.println("RPMS");
-			//Serial.println(rpms.FL_RPM);
-			//Serial.println(rpms.FR_RPM);
-			//Serial.println(rpms.BL_RPM);
-			//Serial.println(rpms.BR_RPM);
+			//Serial.println(_rpms.FL_RPM);
+			//Serial.println(_rpms.FR_RPM);
+			//Serial.println(_rpms.BL_RPM);
+			//Serial.println(_rpms.BR_RPM);
 
-			// send data to slave board
+			// send data to slave board every n intervals
 			if (Serial1.availableForWrite() && sendTimer >= sendInterval)
 			{
 				// build the string in a format ready to be posted up to the webservice
-				String data = "&FL_RPM="+ String(rpms.FL_RPM, 2);
-				data += "&FR_RPM=" + String(rpms.FR_RPM, 2); 
-				data += "&BL_RPM=" + String(rpms.BL_RPM, 2);
-				data+= "&BR_RPM=" + String(rpms.BR_RPM, 2);
+				String data = "carID=1";
+				data += "&FL_RPM=" + String((int)_rpms.FL_RPM);
+				data += "&FR_RPM=" + String((int)_rpms.FR_RPM);
+				data += "&BL_RPM=" + String((int)_rpms.BL_RPM);
+				data += "&BR_RPM=" + String((int)_rpms.BR_RPM);
+				data += "&GSP=" + String(_groundSpeedCount);
+				data += "&TC=" + String(_tcActive);
+				data += "&ABS=" + String(_absActive);
+				data += "&BIP=" + String(_bip);
 
-				//// need to add:
-				//data += "&GSP="
-				//data += "&TC=" 
-				//data += "&ABS="
-				//data += "&BIP=" 
-
+				//Serial.println(data);
 				Serial1.print(data + "!");
 				sendTimer = 0;
+
+				_groundSpeedCount = 0; // reset after sending val to slave board
 			}
 			sendTimer++;
 		}
 
-		if (encIntFlag)
-		{
-			portENTER_CRITICAL_ISR(&encoderMux);
-			encIntFlag = false;
-			portEXIT_CRITICAL_ISR(&encoderMux);
+		//if (encIntFlag)
+		//{
+		//	portENTER_CRITICAL_ISR(&encoderMux);
+		//	encIntFlag = false;
+		//	portEXIT_CRITICAL_ISR(&encoderMux);
 
-		/*	Serial.printf("\nLF: %d", rpms.FL_Wheel_movement);		
-			Serial.printf("\nRF: %d", rpms.FR_Wheel_movement);	
-			Serial.printf("\nRR: %d", rpms.BR_Wheel_movement);		
-			Serial.printf("\nLR: %d", rpms.BL_Wheel_movement);	*/	
-		}
+		//	//Serial.printf("\nLF: %d", _rpms.FL_Wheel_movement);		
+		//	//Serial.printf("\nRF: %d", _rpms.FR_Wheel_movement);	
+		//	//Serial.printf("\nRR: %d", _rpms.BR_Wheel_movement);		
+		//	//Serial.printf("\nLR: %d", _rpms.BL_Wheel_movement);		
+		//}
 	}
 }

@@ -78,10 +78,20 @@ String GrabData(bool isMainThread)
 				{
 					inPayload = true;
 
+					//Check if a bad data object was returned
+					if ((char)buff[i] == 'd')
+						return "badcode";
+
 					payload += (char)buff[i];
 
 					if (buff[i] == '}')
 					{
+						Serial.println(payload);
+
+						////Check if a bad data object was returned
+						//if (payload.indexOf("Failed") > 0)
+						//	return;
+
 						JSONVar jason = JSON.parse(payload);
 
 						int tempStamp = atoi(jason["t"]);
@@ -109,7 +119,7 @@ void SendReceiveSerial(String payload)
 	if (Serial1.available())
 		_postString = Serial1.readStringUntil('!');
 
-	//Serial.println(payload);
+	Serial.println(payload);
 	Serial.println(_postString);
 
 	// send payload to car

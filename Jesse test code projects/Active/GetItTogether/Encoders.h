@@ -31,6 +31,6 @@ typedef struct RPMS {
 
 void InitEncoders(void (*LFintISR) (void), void (*RFintISR) (void), void (*RRintISR) (void), void (*LRintISR) (void));
 void TimerInterruptInit(void (*intFunc) (void));
-RPMS GetRPMS();
+void GetRPMS(RPMS* rpms);
 
 #endif
