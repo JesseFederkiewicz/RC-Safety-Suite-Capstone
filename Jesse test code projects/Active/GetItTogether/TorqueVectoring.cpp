@@ -9,6 +9,11 @@ int tempcount = 0; //take out
 bool firstTime = true;
 bool brakingInProgress = false;
 
+int BR_stopDetection = 0;
+int BL_stopDetection = 0;
+int FR_stopDetection = 0;
+int FL_stopDetection = 0;
+
 MotorDuties duties;
 
 Current_Wheel_Direction curWheelDirection;
@@ -27,6 +32,14 @@ void Drive(int angle, uint speedRequest, RPMS rpm)
 
 	if (speedRequest == 0)
 		Brake(rpm);
+
+	else
+	{
+		BR_stopDetection = 0;
+		BL_stopDetection = 0;
+		FR_stopDetection = 0;
+		FL_stopDetection = 0;
+	}
 
 	SetMotorDirections(leftDir, rightDir);
 	SetMotorSpeeds(duties);
@@ -394,10 +407,10 @@ Movement BR_lastDir = stopped;
 Movement BL_lastDir = stopped;
 Movement FR_lastDir = stopped;
 Movement FL_lastDir = stopped;
-int BR_stopDetection = 0;
-int BL_stopDetection = 0;
-int FR_stopDetection = 0;
-int FL_stopDetection = 0;
+//int BR_stopDetection = 0;
+//int BL_stopDetection = 0;
+//int FR_stopDetection = 0;
+//int FL_stopDetection = 0;
 int BR_stopCounter = 0;
 int BL_stopCounter = 0;
 int FR_stopCounter = 0;
@@ -407,44 +420,44 @@ int FL_stopCounter = 0;
 
 void Brake(RPMS rpm)
 {
+	//VehicleDir --  forward 0, backward 1
+	//Serial.println(vehicleDir);
+
+	//Serial.println("Breaking");
 	//Serial.println(rpm.BL_RPM);
 	//Serial.println(rpm.FL_RPM);
 	//Serial.println(rpm.BR_RPM);
 	//Serial.println(rpm.FL_RPM);
 
-	//VehicleDir --  forward 0, backward 1
-	//Serial.println(vehicleDir);
-
-	Serial.println("move");
-	Serial.println(rpm.BL_Wheel_movement);
-	Serial.println(rpm.FL_Wheel_movement);
-	Serial.println(rpm.BR_Wheel_movement);
-	Serial.println(rpm.FL_Wheel_movement);
+	//Serial.println(rpm.BL_Wheel_movement);
+	//Serial.println(rpm.FL_Wheel_movement);
+	//Serial.println(rpm.BR_Wheel_movement);
+	//Serial.println(rpm.FL_Wheel_movement);
 
 	/*		 brake speed from RPM as % of max RPM (1450)
 		range of brake speed from 40-100%*/
 	const float offset = 60.0;
-	const int minrpm = 15;
+	const int minrpm = 2;
 
-	if (rpm.FL_RPM > minrpm)
+	if (rpm.FL_RPM > minrpm)		//TODO change to by dynamic
 		duties.FL_Duty = 100;
-	else
-		duties.FL_Duty = 0;
+	//else
+	//	duties.FL_Duty = 0;
 
 	if (rpm.FR_RPM > minrpm)
 		duties.FR_Duty = 100;
-	else
-		duties.FR_Duty = 0;
+	//else
+	//	duties.FR_Duty = 0;
 
 	if (rpm.BL_RPM > minrpm)
 		duties.BL_Duty = 100;
-	else
-		duties.BL_Duty = 0;
+	//else
+	//	duties.BL_Duty = 0;
 
 	if (rpm.BR_RPM > minrpm)
 		duties.BR_Duty = 100;
-	else
-		duties.BR_Duty = 0;
+	//else
+	//	duties.BR_Duty = 0;
 
 	//if (rpm.FL_RPM > minrpm)
 	//	duties.FL_Duty = (((100.0 - offset) / 1450.0) * rpm.FL_RPM) + offset;
@@ -519,13 +532,13 @@ void Brake(RPMS rpm)
 	FR_lastDir = rpm.FR_Wheel_movement;
 	FL_lastDir = rpm.FL_Wheel_movement;
 
-	int jiggleLimit = 3;
+	int jiggleLimit = 2;
 
-	Serial.println("detect");
-	Serial.println(BL_stopDetection);
-	Serial.println(FL_stopDetection);
-	Serial.println(BR_stopDetection);
-	Serial.println(FR_stopDetection);
+	//Serial.println("detect");
+	//Serial.println(BL_stopDetection);
+	//Serial.println(FL_stopDetection);
+	//Serial.println(BR_stopDetection);
+	//Serial.println(FR_stopDetection);
 
 	// if wheels reverse n times, set duties to 0
 	if (BR_stopDetection >= jiggleLimit)
@@ -537,8 +550,14 @@ void Brake(RPMS rpm)
 	if (FL_stopDetection >= jiggleLimit)
 		duties.FL_Duty = 0;
 
+	Serial.println("Jiggle counters");
+	Serial.println(BR_stopDetection);
+	Serial.println(BL_stopDetection);
+	Serial.println(FR_stopDetection);
+	Serial.println(FL_stopDetection);
+
 	// if rpms are 0, count it
-	if (rpm.BR_Wheel_movement == stopped)
+	if (rpm.BR_Wheel_movement == stopped)		//Todo these arent adequately triggering
 		BR_stopCounter++;
 	if (rpm.BL_Wheel_movement == stopped)
 		BL_stopCounter++;
@@ -547,8 +566,16 @@ void Brake(RPMS rpm)
 	if (rpm.FL_Wheel_movement == stopped)
 		FL_stopCounter++;
 
-	int stopLimit = 5;
-	int rpmReset = 150;
+	//Serial.println("Stop counters");
+	//Serial.println(BL_stopCounter);
+	//Serial.println(FL_stopCounter);
+	//Serial.println(BR_stopCounter);
+	//Serial.println(FR_stopCounter);
+
+	int stopLimit = 2; // 2
+	int rpmReset = 70; //70 OK? //20 //170 //lower number causes jittering, higher number causes no brake past low rpms
+
+	//focus area ^ 
 
 	// if rpms are 0 n times, reset counters
 	if (BR_stopCounter >= stopLimit || rpm.BR_RPM > rpmReset){
@@ -568,11 +595,73 @@ void Brake(RPMS rpm)
 		FL_stopCounter = 0;
 	}
 
-	Serial.println("count");
-	Serial.println(BR_stopCounter);
-	Serial.println(BL_stopCounter);
-	Serial.println(FR_stopCounter);
-	Serial.println(FL_stopCounter);
+
+
+	//Higher is more brake strength
+	int spinCutterStrength = 4; //4
+	int spinRpm = 5;
+
+	//Optimize reverse spin
+	if (rpm.BR_RPM > spinRpm)
+	{
+		duties.BR_Duty -= duties.BR_Duty / spinCutterStrength;
+
+		if (duties.BR_Duty < 40)
+			duties.BR_Duty = 0;
+	}
+
+	if (rpm.BL_RPM > spinRpm)
+	{
+		duties.BL_Duty -= duties.BL_Duty / spinCutterStrength;
+
+		if (duties.BL_Duty < 40)
+			duties.FL_Duty = 0;
+	}
+
+	if (rpm.FR_RPM > spinRpm)
+	{
+		duties.FR_Duty -= duties.FR_Duty / spinCutterStrength;
+
+		if (duties.FL_Duty < 40)
+			duties.FL_Duty = 0;
+	}
+
+	if (rpm.FL_RPM > spinRpm)
+	{
+		duties.FL_Duty -= duties.FL_Duty / spinCutterStrength;
+
+		if (duties.FL_Duty < 40)
+			duties.FL_Duty = 0;
+	}
+
+
+
+	//Bad
+	//if (BR_stopCounter == 0)
+	//{
+	//	duties.BR_Duty = 0;
+	//}
+
+	//if (BL_stopCounter == 0)
+	//{
+	//	duties.BL_Duty = 0;
+	//}
+
+	//if (FR_stopCounter == 0)
+	//{
+	//	duties.FR_Duty = 0;
+	//}
+
+	//if (FL_stopCounter == 0)
+	//{
+	//	duties.FL_Duty = 0;
+	//}
+
+	//Serial.println("count");
+	//Serial.println(BR_stopCounter);
+	//Serial.println(BL_stopCounter);
+	//Serial.println(FR_stopCounter);
+	//Serial.println(FL_stopCounter);
 
 	curWheelDirection.BackLeft = decel;
 	curWheelDirection.BackRight = decel;
