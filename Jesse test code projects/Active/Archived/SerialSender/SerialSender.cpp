@@ -1,5 +1,5 @@
 // 
-// 
+// code for the slave board that sends post requests to the database and commands to the master board
 // 
 
 #include "SerialSender.h"
@@ -7,13 +7,34 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <Arduino_Json.h>
+#include <mutex>
 
 HTTPClient _mainThread;
 HTTPClient _secondThread;
 
+String serverURL = "https://coolstuffliveshere.com/Rc_Safety_Suite/Main_Web/webservice.php";
+
 bool _mainCoreSending = false;
 bool _secondCoreSending = true;
 int _lastTime = 0;
+int _outDatedCounter = 0;
+
+// in the event of bad return data from the web server this will be sent to the master board to stop the car
+#define STOPCOMMAND "{\"a\":\"0\",\"s\":\"0\",\"t\":\"" + String(_lastTime) + "\"}!"
+
+// values to send up to the database in post request
+int FL_RPM = 0;
+int FR_RPM = 0;
+int BL_RPM = 0;
+int BR_RPM = 0;
+int GSP = 0;
+int TC = 0;
+int ABS = 0;
+int BIP = 0;
+
+// global string for holding the data received from the car 
+//  to posted to the database, will already be in the right format
+String _postString = "";
 
 String GrabData(bool isMainThread)
 {
@@ -24,12 +45,12 @@ String GrabData(bool isMainThread)
 	if (isMainThread)
 	{
 		_mainThread.addHeader("Content-Type", "application/x-www-form-urlencoded");
-		httpCode = _mainThread.POST("action=GrabWebToCar&carID=1");
+		httpCode = _mainThread.POST(_postString);
 	}
 	else
 	{
 		_secondThread.addHeader("Content-Type", "application/x-www-form-urlencoded");
-		httpCode = _secondThread.POST("action=GrabWebToCar&carID=1");
+		httpCode = _secondThread.POST(_postString);
 	}
 	if (httpCode == HTTP_CODE_OK)
 	{
@@ -58,10 +79,20 @@ String GrabData(bool isMainThread)
 				{
 					inPayload = true;
 
+					//Check if a bad data object was returned
+					if ((char)buff[i] == 'd')
+						return "badcode";
+
 					payload += (char)buff[i];
 
 					if (buff[i] == '}')
 					{
+						Serial.println(payload);
+
+						////Check if a bad data object was returned
+						//if (payload.indexOf("Failed") > 0)
+						//	return;
+
 						JSONVar jason = JSON.parse(payload);
 
 						int tempStamp = atoi(jason["t"]);
@@ -73,7 +104,6 @@ String GrabData(bool isMainThread)
 
 							return payload;
 						}
-
 						else
 							return "outdated";
 					}
@@ -84,19 +114,57 @@ String GrabData(bool isMainThread)
 	return "badcode";
 }
 
-void SendPayload(String payload) 
-{
-	if (Serial2.availableForWrite())
+//portMUX_TYPE myMutex = portMUX_INITIALIZER_UNLOCKED;
+std::mutex myMutex;
+void SendReceiveSerial(String payload) 
+{	
+	//taskENTER_CRITICAL(&myMutex);
+
+	//critical section
+	int serialByteSize = Serial1.available();
+	// read data from car
+	if (serialByteSize)
 	{
-		//Serial.println(payload);
-		Serial2.println(payload + "!");
+		Serial.println(serialByteSize);
+		myMutex.lock();
+		_postString = Serial1.readStringUntil('!');
+		Serial1.flush();
+		myMutex.unlock();
+	}
+	//taskEXIT_CRITICAL(&myMutex);
+
+	Serial.println(payload);
+	Serial.println(_postString);
+
+	// send payload to car
+	if (Serial2.availableForWrite()) {
+
+		// send stop command on bad payload
+		if (payload == "badcode") {
+
+			Serial2.print(STOPCOMMAND);
+			return;
+		}	
+
+		// send stop command on too many outdateds
+		if (payload == "outdated") {
+
+			_outDatedCounter++;
+
+			if (_outDatedCounter == 3) {
+				Serial2.print(STOPCOMMAND);
+				_outDatedCounter = 0;
+			}			
+			return;
+		}
+		// send real payload if we make it past returns
+		Serial2.print(payload + "!");
 	}
 }
 
-void Core0Grab(void* param)
+void Core0Loop(void* param)
 {
-	Serial2.println("START second Core");
-	_secondThread.begin("https://coolstuffliveshere.com/Rc_Safety_Suite/Main_Web/webservice.php");
+	_secondThread.begin(serverURL);
 
 	for (;;)
 	{
@@ -106,16 +174,18 @@ void Core0Grab(void* param)
 		_secondCoreSending = true;
 		String payload = GrabData(false);
 		_secondCoreSending = false;
-		SendPayload(payload);		
+
+		SendReceiveSerial(payload);		
 	}
 }
 
 void Main()
 {
 	// Init Serial2 Monitor
-	//Serial.begin(115200);
+	Serial.begin(115200);
 	Serial2.begin(115200);
-
+	Serial1.begin(115200, SERIAL_8N1, 16);
+	
 	//char* jesseSsid = "Cappy";
 	//char* jessePass = "ThisIs@nAdequateP@ss123";
 	//WiFi.begin(jesseSsid, jessePass);
@@ -124,6 +194,8 @@ void Main()
 
 	const char* timsHotssid = "tims wifi";
 	const char* timsHotpassword = "whatpassword";
+	const char* timsShitternet = "hachey wifi 2.4 GHz";
+	const char* timsShitternetPass = "38hachey";
 	const char* jesseSsid = "Cappy";
 	const char* jessePass = "ThisIs@nAdequateP@ss123";
 
@@ -142,7 +214,7 @@ void Main()
 		if (connectionCounter > 20)
 		{
 			WiFi.disconnect();
-			WiFi.begin(timsHotssid, timsHotpassword);
+			WiFi.begin(timsShitternet, timsShitternetPass);
 			//Serial.println("REConnecting");
 			while (WiFi.status() != WL_CONNECTED) {
 				delay(250);
@@ -155,7 +227,7 @@ void Main()
 	// assign loop function for core 0
 	TaskHandle_t core0Task; // task handle for core 0 task
 	xTaskCreatePinnedToCore(
-		Core0Grab,   /* Function to run on core 0*/
+		Core0Loop,   /* Function to run on core 0*/
 		"core0Task", /* Name of the task */
 		10000,       /* Stack size in words */
 		NULL,        /* Task input parameter */
@@ -166,7 +238,7 @@ void Main()
 
 	delay(450);
 
-	_mainThread.begin("https://coolstuffliveshere.com/Rc_Safety_Suite/Main_Web/webservice.php");
+	_mainThread.begin(serverURL);
 	int i = 0;
 	for (;;)
 	{
@@ -176,6 +248,7 @@ void Main()
 		_mainCoreSending = true;
 		String payload = GrabData(true);
 		_mainCoreSending = false;
-		SendPayload(payload);
+
+		SendReceiveSerial(payload);
 	}
 }
