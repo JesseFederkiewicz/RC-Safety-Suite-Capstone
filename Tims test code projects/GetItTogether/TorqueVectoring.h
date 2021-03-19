@@ -18,6 +18,19 @@ typedef struct Current_Wheel_Direction {
 	Accel_Or_Decel BackRight;
 };
 
+typedef enum Wheel {
+	LF,
+	RF,
+	LR,
+	RR
+};
+
+typedef struct WheelAndRPM {
+	float rpm;
+	float desiredRpm;
+	Wheel wheel;
+};
+
 void Drive(int angle, uint speedIn, RPMS rpm);
 void Steering(int angle, uint speedRequest, RPMS rpm);
 void Brake(RPMS rpm);

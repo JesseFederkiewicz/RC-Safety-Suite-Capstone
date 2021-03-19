@@ -4,6 +4,9 @@
 // 
 
 #include "Main.h"
+#include "mutex"
+
+std::mutex _mutex;
 
 // values for driving
 int _intendedAngle = 0;
@@ -120,7 +123,7 @@ void ReadSerialPayload()
 
 		//payload.trim();
 
-		Serial.println(payload);
+		//Serial.println(payload);
 
 		JSONVar jason = JSON.parse(payload);
 
@@ -128,9 +131,11 @@ void ReadSerialPayload()
 
 		if (tempStamp > _timeStamp || (_timeStamp - tempStamp > 5000))
 		{
+			_mutex.lock();
 			_intendedAngle = atoi(jason["a"]);
 			_intendedSpeed = atoi(jason["s"]);
 			_timeStamp = tempStamp;
+			_mutex.unlock();
 
 			//Serial.println(_intendedAngle);
 			//Serial.println(_intendedSpeed);
@@ -190,7 +195,7 @@ void Main()
 			timerIntFlag = false;
 			portEXIT_CRITICAL(&timerMux);
 
-			_rpms = GetRPMS();
+			GetRPMS(&_rpms);
 
 			_rpms.GroundSpeedCount = _groundSpeedCount;
 
@@ -219,9 +224,10 @@ void Main()
 				//Serial.println(data);
 				Serial1.print(data + "!");
 				sendTimer = 0;
+
+				_groundSpeedCount = 0; // reset after sending val to slave board
 			}
 			sendTimer++;
-			_groundSpeedCount = 0; // reset after sending val to slave board
 		}
 
 		//if (encIntFlag)
@@ -230,10 +236,10 @@ void Main()
 		//	encIntFlag = false;
 		//	portEXIT_CRITICAL_ISR(&encoderMux);
 
-		///*	Serial.printf("\nLF: %d", _rpms.FL_Wheel_movement);		
-		//	Serial.printf("\nRF: %d", _rpms.FR_Wheel_movement);	
-		//	Serial.printf("\nRR: %d", _rpms.BR_Wheel_movement);		
-		//	Serial.printf("\nLR: %d", _rpms.BL_Wheel_movement);	*/	
+		//	//Serial.printf("\nLF: %d", _rpms.FL_Wheel_movement);		
+		//	//Serial.printf("\nRF: %d", _rpms.FR_Wheel_movement);	
+		//	//Serial.printf("\nRR: %d", _rpms.BR_Wheel_movement);		
+		//	//Serial.printf("\nLR: %d", _rpms.BL_Wheel_movement);		
 		//}
 	}
 }

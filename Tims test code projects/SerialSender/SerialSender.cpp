@@ -7,6 +7,7 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <Arduino_Json.h>
+#include <mutex>
 
 HTTPClient _mainThread;
 HTTPClient _secondThread;
@@ -34,6 +35,8 @@ int BIP = 0;
 // global string for holding the data received from the car 
 //  to posted to the database, will already be in the right format
 String _postString = "";
+
+std::mutex myMutex; // used for locking the _postString so it doesnt crash when both cores read/set it
 
 String GrabData(bool isMainThread)
 {
@@ -113,11 +116,19 @@ String GrabData(bool isMainThread)
 	return "badcode";
 }
 
-void SendReceiveSerial(String payload) 
-{	
+void SendReceiveSerial(String payload)
+{
+	//critical section
+	int serialByteSize = Serial1.available();
 	// read data from car
-	if (Serial1.available())
+	if (serialByteSize)
+	{
+		Serial.println(serialByteSize);
+		myMutex.lock();
 		_postString = Serial1.readStringUntil('!');
+		Serial1.flush();
+		myMutex.unlock();
+	}
 
 	Serial.println(payload);
 	Serial.println(_postString);
@@ -130,7 +141,7 @@ void SendReceiveSerial(String payload)
 
 			Serial2.print(STOPCOMMAND);
 			return;
-		}	
+		}
 
 		// send stop command on too many outdateds
 		if (payload == "outdated") {
@@ -140,7 +151,7 @@ void SendReceiveSerial(String payload)
 			if (_outDatedCounter == 3) {
 				Serial2.print(STOPCOMMAND);
 				_outDatedCounter = 0;
-			}			
+			}
 			return;
 		}
 		// send real payload if we make it past returns
@@ -161,7 +172,7 @@ void Core0Loop(void* param)
 		String payload = GrabData(false);
 		_secondCoreSending = false;
 
-		SendReceiveSerial(payload);		
+		SendReceiveSerial(payload);
 	}
 }
 
@@ -171,17 +182,15 @@ void Main()
 	Serial.begin(115200);
 	Serial2.begin(115200);
 	Serial1.begin(115200, SERIAL_8N1, 16);
-	
+
 	//char* jesseSsid = "Cappy";
 	//char* jessePass = "ThisIs@nAdequateP@ss123";
 	//WiFi.begin(jesseSsid, jessePass);
 
 	//Serial.println("Connecting");
 
-	const char* timsHotssid = "tims wifi";
-	const char* timsHotpassword = "whatpassword";
-	const char* timsShitternet = "hachey wifi 2.4 GHz";
-	const char* timsShitternetPass = "38hachey";
+	const char* timsssid = "_starLink";
+	const char* timspassword = "whatpassword";
 	const char* jesseSsid = "Cappy";
 	const char* jessePass = "ThisIs@nAdequateP@ss123";
 
@@ -200,7 +209,7 @@ void Main()
 		if (connectionCounter > 20)
 		{
 			WiFi.disconnect();
-			WiFi.begin(timsShitternet, timsShitternetPass);
+			WiFi.begin(timsssid, timspassword);
 			//Serial.println("REConnecting");
 			while (WiFi.status() != WL_CONNECTED) {
 				delay(250);

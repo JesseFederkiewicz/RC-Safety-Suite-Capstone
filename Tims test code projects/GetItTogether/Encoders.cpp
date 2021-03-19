@@ -271,7 +271,7 @@ float CalcRMP(uint encoderVal)
 
 // reads all encoder values from the pulse counter modules, clears the counters
 // gets RPMs from the encoder values and returns them
-RPMS GetRPMS()
+void GetRPMS(RPMS* rpms)
 {
 	int16_t fl_Enc;
 	int16_t fr_Enc;
@@ -282,8 +282,6 @@ RPMS GetRPMS()
 	int16_t bl_Enc2;
 	int16_t br_Enc2;
 
-	RPMS rpmOutput;
-
 	pcnt_get_counter_value(FL_Encoder.pcntUnit, &fl_Enc);
 	pcnt_get_counter_value(FR_Encoder.pcntUnit, &fr_Enc);
 	pcnt_get_counter_value(BL_Encoder.pcntUnit, &bl_Enc);
@@ -293,24 +291,25 @@ RPMS GetRPMS()
 	pcnt_get_counter_value(BL_Encoder2.pcntUnit, &bl_Enc2);
 	pcnt_get_counter_value(BR_Encoder2.pcntUnit, &br_Enc2);
 	
-	rpmOutput.FL_RPM = CalcRMP(fl_Enc + fl_Enc2);
-	rpmOutput.FR_RPM = CalcRMP(fr_Enc + fr_Enc2);
-	rpmOutput.BL_RPM = CalcRMP(bl_Enc + bl_Enc2);
-	rpmOutput.BR_RPM = CalcRMP(br_Enc + br_Enc2);
+	rpms->FL_RPM = CalcRMP(fl_Enc + fl_Enc2);
+	rpms->FR_RPM = CalcRMP(fr_Enc + fr_Enc2);
+	rpms->BL_RPM = CalcRMP(bl_Enc + bl_Enc2);
+	rpms->BR_RPM = CalcRMP(br_Enc + br_Enc2);
 
 	// set wheel directions to stopped on 0 RPM
-	if (rpmOutput.FL_RPM == 0.0) {
-		rpmOutput.FL_Wheel_movement = stopped;
+	if (rpms->FL_RPM < 1) {
+		rpms->FL_Wheel_movement = stopped;
 	}
-	if (rpmOutput.FR_RPM == 0.0) {
-		rpmOutput.FR_Wheel_movement = stopped;
+	if (rpms->FR_RPM < 1) {
+		rpms->FR_Wheel_movement = stopped;
 	}
-	if (rpmOutput.BL_RPM == 0.0) {
-		rpmOutput.BL_Wheel_movement = stopped;
+	if (rpms->BL_RPM < 1) {
+		rpms->BL_Wheel_movement = stopped;
 	}
-	if (rpmOutput.BR_RPM == 0.0) {
-		rpmOutput.BR_Wheel_movement = stopped;
+	if (rpms->BR_RPM < 1) {
+		rpms->BR_Wheel_movement = stopped;
 	}
+
 	//Serial.printf("\n\nFL: %d - %d\n", fl_Enc, fl_Enc2);
 	//Serial.printf("FR: %d - %d\n", fr_Enc, fr_Enc2);
 	//Serial.printf("BL: %d - %d\n", bl_Enc, bl_Enc2);
@@ -329,6 +328,4 @@ RPMS GetRPMS()
 	pcnt_counter_clear(BL_Encoder2.pcntUnit);
 	pcnt_counter_clear(BR_Encoder.pcntUnit);
 	pcnt_counter_clear(BR_Encoder2.pcntUnit);
-
-	return rpmOutput;
 }
