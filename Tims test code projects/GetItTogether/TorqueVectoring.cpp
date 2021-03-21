@@ -5,96 +5,91 @@
 
 #include "TorqueVectoring.h"
 
-int tempcount = 0; //take out
-bool firstTime = true;
-bool brakingInProgress = false;
-bool _TC_Active = true;
-bool _ABS_Active = false;
+bool firstTime = true;    // for initializing values on the first pass
+bool _TC_Active = true;   // for activating traction control
+bool _ABS_Active = false; // for activating anti-lock brakes
 
 int BR_stopDetection = 0;
 int BL_stopDetection = 0;
 int FR_stopDetection = 0;
 int FL_stopDetection = 0;
 
-const float DUTYMIN = 50.0; // the lowest duty cycle to spin the motors at, as any less wont turn them
-const int MAXRPM = 1300;
+int BR_stopCounter = 0;
+int BL_stopCounter = 0;
+int FR_stopCounter = 0;
+int FL_stopCounter = 0;
 
-MotorDuties duties;
-Current_Wheel_Direction curWheelDirection;
-MotorDirection leftDir;
-MotorDirection rightDir;
+// the last direction of wheel rotation as determined by the encoder readings/matrix calc
+Movement BR_lastDir = stopped;
+Movement BL_lastDir = stopped;
+Movement FR_lastDir = stopped;
+Movement FL_lastDir = stopped;
+
+const float DUTYMIN = 50.0; // the lowest duty cycle to spin the motors at, as any less wont turn them
+const int MAXRPM = 1300;    // wheel speed limit
+
+Current_Wheel_Direction curWheelDirection; // each wheel is either accelerating or decelerating
+MotorDuties duties;      // duty cycle values to set the motors to
+MotorDirection leftDir;  // direction the left motors will be set to spin
+MotorDirection rightDir; // direction of the right motors
 
 void UpdateDuty(WheelAndRPM currentWheel, float* duty, Accel_Or_Decel* wheelDir, WheelAndRPM slowestWheel, uint speedRequest)
 {
-	//Serial.printf("\n\n currentWheel: %d", currentWheel.wheel);
-
-	//Serial.printf("\n currentRPM: %f", currentWheel.rpm);
-	//Serial.printf("\n currentDesired: %f", currentWheel.desiredRpm);
-	//Serial.printf("\n slowestRPM: %f", slowestWheel.rpm);
-	//Serial.printf("\n slowestDesired: %f", slowestWheel.desiredRpm);
-
-	float newDesired = currentWheel.desiredRpm;
-	Serial.printf("\n\n %d", currentWheel.wheel);
-
-	// driving with traction control
+	// if traction control is enabled, update desired RPM to match slowest wheel, keeping the ratio for turns
 	if (_TC_Active && (currentWheel.wheel != slowestWheel.wheel))
 	{
 		if (currentWheel.rpm > slowestWheel.rpm + 50);
 		{
 			float ratio = currentWheel.desiredRpm / slowestWheel.desiredRpm;
 
-			newDesired = slowestWheel.rpm * ratio;
+			currentWheel.desiredRpm = slowestWheel.rpm * ratio;
 		}
 	}
 
-	Serial.printf("\n Desired1: %f", newDesired);
-	if (currentWheel.rpm > newDesired && *duty > 0)
+	// wheel too fast, decrement duty
+	if (currentWheel.rpm > currentWheel.desiredRpm && *duty > 0)
 	{
-		Serial.printf("\n rpm: %f", currentWheel.rpm);
-		Serial.printf("\n Desired3: %f", newDesired);
 		*duty -= 15;
-
 		*wheelDir = decel;
-	}	
-	else if (currentWheel.rpm <= newDesired && *duty < 100)
-	{
-		Serial.printf("\n rpm: %f", currentWheel.rpm);
-		Serial.printf("\n Desired2: %f", newDesired);
 
+		// possibly insert brakes here
+	}	
+
+	// wheel too slow, increment duty
+	else if (currentWheel.rpm <= currentWheel.desiredRpm && *duty < 100)
+	{
 		if (*duty < DUTYMIN)
 			*duty = DUTYMIN;
 
-		//if (*wheelDir != accel)
-		{
-			float guessDuty = newDesired * (speedRequest / 1000.0) / (MAXRPM / 1000) / 2 + DUTYMIN - 30;
+		// sometimes incrementing duty by 1 is too slow, so we'll need to jump up to a higher duty right away
+		float guessDuty = currentWheel.desiredRpm * (speedRequest / 1000.0) / (MAXRPM / 1000) / 2 + DUTYMIN - 30;
 
-			if (*duty >= guessDuty)
-			{
-				Serial.printf("\n GUESS1: %f", guessDuty);
-				*duty += 1;
-			}
-			else {
-				Serial.printf("\n GUESS2: %f", guessDuty);
-				*duty = guessDuty;
-				*wheelDir = accel;
-			}
+		if (*duty >= guessDuty)
+		{
+			*duty += 1;
 		}
-		/*else
-			*duty += 1;*/
+		else {
+			*duty = guessDuty;
+			*wheelDir = accel;
+		}
 	}
 }
 
-// this function will drive the vehicle and 
-// apply brakes when zero speedSet is requested and rpms are still high
+// this function will apply brakes when speed requested is zero, or
+// call the steering function to determine duty cycles, 
+// and then set motor directions and duties
 void Drive(int angle, uint speedRequest, RPMS rpm)
 {
-	Steering(angle, speedRequest, rpm);
-
 	if (speedRequest == 0) {
-		Brake(rpm);
+		//Brake(rpm);
+		SingleWheelBrake(rpm.BL_RPM, 0, &duties.BL_Duty, rpm.BL_Wheel_movement, &BL_lastDir, &BL_stopCounter, &BL_stopDetection, &curWheelDirection.BackLeft);
+		SingleWheelBrake(rpm.BR_RPM, 0, &duties.BR_Duty, rpm.BR_Wheel_movement, &BR_lastDir, &BR_stopCounter, &BR_stopDetection, &curWheelDirection.BackRight);
+		SingleWheelBrake(rpm.FL_RPM, 0, &duties.FL_Duty, rpm.FL_Wheel_movement, &FL_lastDir, &FL_stopCounter, &FL_stopDetection, &curWheelDirection.FrontLeft);
+		SingleWheelBrake(rpm.FR_RPM, 0, &duties.FR_Duty, rpm.FR_Wheel_movement, &FR_lastDir, &FR_stopCounter, &FR_stopDetection, &curWheelDirection.FrontRight);
 	}
 	else
 	{
+		Steering(angle, speedRequest, rpm);
 		BR_stopDetection = 0;
 		BL_stopDetection = 0;
 		FR_stopDetection = 0;
@@ -102,16 +97,13 @@ void Drive(int angle, uint speedRequest, RPMS rpm)
 	}
 
 	SetMotorDirections(leftDir, rightDir);
-	//Serial.printf("\n\n duties: \n %f\n %f\n %f\n %f", duties.BL_Duty, duties.BR_Duty, duties.FL_Duty, duties.FR_Duty);
 	SetMotorSpeeds(duties);
 }
 
+// calculates desired rpms for each wheel, based on requested speed and angle, using 
 void Steering(int angle, uint speedRequest, RPMS rpm)
 {
-	const float maxAng = 90.0;  // the maximum angle for each quadrant of turning
-
-	//float speedSet = speedRequest == 0 ? 0 : (0.5 * speedRequest) + DUTYMIN;
-
+	// initialize values on first pass
 	if (firstTime)
 	{
 		duties.FL_Duty = 0;
@@ -126,10 +118,9 @@ void Steering(int angle, uint speedRequest, RPMS rpm)
 
 		firstTime = false;
 	}
-	//			0
-	// -90				90
-	//		   180
-
+	//		  0
+	// -90			90
+	//		 180
 
 	//45 & speed == 100
 	//Left = full
@@ -142,242 +133,221 @@ void Steering(int angle, uint speedRequest, RPMS rpm)
 
 	//int duty = speedSet * ((100 / 90 * (90 - angle)) / 100);	
 
+	float desired_LEFT_RPM;
+	float desired_RIGHT_RPM;
 
-	if (!brakingInProgress && speedRequest != 0)
+	// forward: straight or right turn
+	if (angle >= 0 && angle < 90)
 	{
-		float desired_LEFT_RPM;
-		float desired_RIGHT_RPM;
+		double angleAsPercent = ((100.0 / 90.0 * (90.0 - angle)) / 100.0);
+		//				45 - speed 100
+		//	1300	650	
+		//					1300 * .5 * 1 = 1300 != 650
 
-		if (angle >= 0 && angle < 90)
-		{
-			//Serial.println("Forward Right");
-			double angleAsPercent = ((100.0 / 90.0 * (90.0 - angle)) / 100.0);
-			//				45 - speed 100
-			//	1300	650	
-			//					1300 * .5 * 1 = 1300 != 650
+		leftDir = Forward;
+		rightDir = Forward;
 
-			//desired_LEFT_RPM = MAXRPM * angleAsPercent * (speedRequest / 100);
-			//vehicleDir = forward;
-			//Serial.println("Forward");
-			//desired_RIGHT_RPM = MAXRPM / 2;
+		desired_LEFT_RPM = MAXRPM * (speedRequest / 100.0);
 
-			leftDir = Forward;
-			rightDir = Forward;
+		//Serial.println(desired_LEFT_RPM);
+		//desired_RIGHT_RPM = MAXRPM * angleAsPercent * (double)(speedRequest / 100);
 
-			desired_LEFT_RPM = MAXRPM * (speedRequest / 100.0);
-
-			//Serial.println(desired_LEFT_RPM);
-			//desired_RIGHT_RPM = MAXRPM * angleAsPercent * (double)(speedRequest / 100);
-
-			//					1300 * .5 = 650
-			desired_RIGHT_RPM = desired_LEFT_RPM * angleAsPercent;
-		}
-
-		else if (angle < 0 && angle > -90)
-		{
-			//Serial.println("Forward Left");
-			double angleAsPercent = ((100.0 / 90.0 * (90.0 - (angle * -1))) / 100.0);
-
-			//vehicleDir = forward;
-			//Serial.println("Forward");
-
-			leftDir = Forward;
-			rightDir = Forward;
-
-			desired_RIGHT_RPM = MAXRPM * (speedRequest / 100.0);
-			desired_LEFT_RPM = desired_RIGHT_RPM * angleAsPercent;
-		}
-
-
-		//			0
-		// -90				90
-		//		   180
-
-
-		else if (angle > 90 && angle <= 180)
-		{
-			//Serial.println("Backwards Right");
-			double angleAsPercent = 1 - (((100.0 / 90.0 * (180.0 - angle)) / 100.0));
-			// 45 - 100
-			// MAX - RIGHT MAX / 2
-			//
-			//	
-			//
-			//vehicleDir = backward;
-
-			////Serial.println("Backward");
-
-			leftDir = Reverse;
-			rightDir = Reverse;
-
-			desired_LEFT_RPM = MAXRPM * (speedRequest / 100.0);
-			desired_RIGHT_RPM = desired_LEFT_RPM * angleAsPercent;
-		}
-
-		else if (angle < -90 && angle > -180)
-		{
-			//Serial.println("Backwards Left");
-			double angleAsPercent = 1 - (((100.0 / 90.0 * (180.0 - (angle * -1))) / 100.0));
-
-
-			//vehicleDir = backward;
-			////Serial.println("Backward");
-
-			leftDir = Reverse;
-			rightDir = Reverse;
-
-			desired_RIGHT_RPM = MAXRPM * (speedRequest / 100.0);
-			desired_LEFT_RPM = desired_RIGHT_RPM * angleAsPercent;
-		}
-
-		//Burn right
-		if (angle == 90)
-		{
-
-			double angleAsPercent = ((100.0 / 90.0 * (90.0 - angle)) / 100.0);
-
-			leftDir = Forward;
-			rightDir = Reverse;
-
-			desired_LEFT_RPM = MAXRPM * (speedRequest / 100.0);
-
-			desired_RIGHT_RPM = desired_LEFT_RPM; //not the same rpm
-		}
-
-		//Burn left
-		else if (angle == -90)
-		{
-			//Serial.println("Forward Left");
-			double angleAsPercent = ((100.0 / 90.0 * (90.0 - (angle * -1))) / 100.0);
-
-			leftDir = Reverse;
-			rightDir = Forward;
-
-			desired_RIGHT_RPM = MAXRPM * (speedRequest / 100.0);
-			desired_LEFT_RPM = desired_RIGHT_RPM;	//not the same rpm
-		}
-
-		//float guessLeftDuty = desired_LEFT_RPM * (speedRequest / 1000.0) / (MAXRPM / 1000) / 2 + DUTYMIN - 30;
-		//float guessRightDuty = desired_RIGHT_RPM * (speedRequest / 1000.0) / (MAXRPM / 1000) / 2 + DUTYMIN - 30;
-
-		WheelAndRPM slowestWheel;
-		slowestWheel.rpm = rpm.BL_RPM;
-		slowestWheel.desiredRpm = desired_LEFT_RPM;
-		slowestWheel.wheel = LR;
-
-		if (rpm.BR_RPM < slowestWheel.rpm) {
-			slowestWheel.rpm = rpm.BR_RPM;
-			slowestWheel.desiredRpm = desired_RIGHT_RPM;
-			slowestWheel.wheel = RR;
-		}
-		if (rpm.FL_RPM < slowestWheel.rpm) {
-			slowestWheel.rpm = rpm.FL_RPM;
-			slowestWheel.desiredRpm = desired_LEFT_RPM;
-			slowestWheel.wheel = LF;
-		}
-		if (rpm.FR_RPM < slowestWheel.rpm) {
-			slowestWheel.rpm = rpm.FR_RPM;
-			slowestWheel.desiredRpm = desired_RIGHT_RPM;
-			slowestWheel.wheel = RF;
-		}
-
-
-		//Serial.println(guessLeftDuty);
-		//Serial.println(guessRightDuty);
-		WheelAndRPM backLeft = { rpm.BL_RPM, desired_LEFT_RPM, LR };
-		WheelAndRPM frontLeft = { rpm.FL_RPM, desired_LEFT_RPM, LF };
-		WheelAndRPM backRight = { rpm.BR_RPM, desired_RIGHT_RPM, RR };
-		WheelAndRPM frontRight = { rpm.FR_RPM, desired_RIGHT_RPM, RF };
-
-		UpdateDuty(backLeft, &duties.BL_Duty, &curWheelDirection.BackLeft, slowestWheel,speedRequest);
-		UpdateDuty(frontLeft, &duties.FL_Duty, &curWheelDirection.FrontLeft, slowestWheel, speedRequest);
-		UpdateDuty(backRight, &duties.BR_Duty, &curWheelDirection.BackRight, slowestWheel, speedRequest);
-		UpdateDuty(frontRight, &duties.FR_Duty, &curWheelDirection.FrontRight, slowestWheel, speedRequest);
+		//					1300 * .5 = 650
+		desired_RIGHT_RPM = desired_LEFT_RPM * angleAsPercent;
 	}
+	// forward: left turn
+	else if (angle < 0 && angle > -90)
+	{
+		double angleAsPercent = ((100.0 / 90.0 * (90.0 - (angle * -1))) / 100.0);
+
+		leftDir = Forward;
+		rightDir = Forward;
+
+		desired_RIGHT_RPM = MAXRPM * (speedRequest / 100.0);
+		desired_LEFT_RPM = desired_RIGHT_RPM * angleAsPercent;
+	}
+
+	//		  0
+	// -90			90
+	//		 180
+
+	// backwards: straight or right turn
+	else if (angle > 90 && angle <= 180)
+	{
+		//Serial.println("Backwards Right");
+		double angleAsPercent = 1 - (((100.0 / 90.0 * (180.0 - angle)) / 100.0));
+		// 45 - 100
+		// MAX - RIGHT MAX / 2
+		//
+		//	
+		//
+		//vehicleDir = backward;
+
+		////Serial.println("Backward");
+
+		leftDir = Reverse;
+		rightDir = Reverse;
+
+		desired_LEFT_RPM = MAXRPM * (speedRequest / 100.0);
+		desired_RIGHT_RPM = desired_LEFT_RPM * angleAsPercent;
+	}
+
+	// backwards: left turn
+	else if (angle < -90 && angle > -180)
+	{
+		//Serial.println("Backwards Left");
+		double angleAsPercent = 1 - (((100.0 / 90.0 * (180.0 - (angle * -1))) / 100.0));
+
+
+		//vehicleDir = backward;
+		////Serial.println("Backward");
+
+		leftDir = Reverse;
+		rightDir = Reverse;
+
+		desired_RIGHT_RPM = MAXRPM * (speedRequest / 100.0);
+		desired_LEFT_RPM = desired_RIGHT_RPM * angleAsPercent;
+	}
+
+	//Burn right
+	if (angle == 90)
+	{
+
+		double angleAsPercent = ((100.0 / 90.0 * (90.0 - angle)) / 100.0);
+
+		leftDir = Forward;
+		rightDir = Reverse;
+
+		desired_LEFT_RPM = MAXRPM * (speedRequest / 100.0);
+
+		desired_RIGHT_RPM = desired_LEFT_RPM; 
+	}
+
+	//Burn left
+	else if (angle == -90)
+	{
+		//Serial.println("Forward Left");
+		double angleAsPercent = ((100.0 / 90.0 * (90.0 - (angle * -1))) / 100.0);
+
+		leftDir = Reverse;
+		rightDir = Forward;
+
+		desired_RIGHT_RPM = MAXRPM * (speedRequest / 100.0);
+		desired_LEFT_RPM = desired_RIGHT_RPM;	
+	}
+
+	// determine slowest wheel for TC purposes
+	WheelAndRPM slowestWheel;
+	slowestWheel.rpm = rpm.BL_RPM;
+	slowestWheel.desiredRpm = desired_LEFT_RPM;
+	slowestWheel.wheel = LR;
+
+	if (rpm.BR_RPM < slowestWheel.rpm) {
+		slowestWheel.rpm = rpm.BR_RPM;
+		slowestWheel.desiredRpm = desired_RIGHT_RPM;
+		slowestWheel.wheel = RR;
+	}
+	if (rpm.FL_RPM < slowestWheel.rpm) {
+		slowestWheel.rpm = rpm.FL_RPM;
+		slowestWheel.desiredRpm = desired_LEFT_RPM;
+		slowestWheel.wheel = LF;
+	}
+	if (rpm.FR_RPM < slowestWheel.rpm) {
+		slowestWheel.rpm = rpm.FR_RPM;
+		slowestWheel.desiredRpm = desired_RIGHT_RPM;
+		slowestWheel.wheel = RF;
+	}
+
+
+	//Serial.println(guessLeftDuty);
+	//Serial.println(guessRightDuty);
+	WheelAndRPM backLeft = { rpm.BL_RPM, desired_LEFT_RPM, LR };
+	WheelAndRPM frontLeft = { rpm.FL_RPM, desired_LEFT_RPM, LF };
+	WheelAndRPM backRight = { rpm.BR_RPM, desired_RIGHT_RPM, RR };
+	WheelAndRPM frontRight = { rpm.FR_RPM, desired_RIGHT_RPM, RF };
+
+	UpdateDuty(backLeft, &duties.BL_Duty, &curWheelDirection.BackLeft, slowestWheel,speedRequest);
+	UpdateDuty(frontLeft, &duties.FL_Duty, &curWheelDirection.FrontLeft, slowestWheel, speedRequest);
+	UpdateDuty(backRight, &duties.BR_Duty, &curWheelDirection.BackRight, slowestWheel, speedRequest);
+	UpdateDuty(frontRight, &duties.FR_Duty, &curWheelDirection.FrontRight, slowestWheel, speedRequest);	
 }
 
-Movement BR_lastDir = stopped;
-Movement BL_lastDir = stopped;
-Movement FR_lastDir = stopped;
-Movement FL_lastDir = stopped;
-//int BR_stopDetection = 0;
-//int BL_stopDetection = 0;
-//int FR_stopDetection = 0;
-//int FL_stopDetection = 0;
-int BR_stopCounter = 0;
-int BL_stopCounter = 0;
-int FR_stopCounter = 0;
-int FL_stopCounter = 0;
+void SingleWheelBrake(float currentRPM, float brakeToRPM, float *wheelDuty, Movement currentMovement, Movement *lastWheelDir, int *stopCounter, int *stopDetection, Accel_Or_Decel *currentDirection)
+{
+	const int minrpm = 2;	   // wheel is stopped if spinning less than this rpm	
+	const int jiggleLimit = 2; // if the wheels switch directions this many times, the vehicle is stopped
+	const int stopLimit = 2;
+	const int rpmReset = 70;   // 70 OK? //20 //170 //lower number causes jittering, higher number causes no brake past low rpms
 
+	//Higher is more brake strength
+	const int spinCutterStrength = 4; //4
+	const int spinRpm = 5;
 
+	// if wheels are still spinning, brakes will be applied with max power
+	if (currentRPM > minrpm)
+		*wheelDuty = 100;
+
+	// stop wheels by reversing the direction of the motor
+	if (currentMovement == forward) {
+		leftDir = Reverse;
+	}
+	else if (currentMovement == backward) {
+		leftDir = Forward;
+	}
+	// if rpms are 0, count it and set duty to zero
+	else if (currentMovement == stopped)
+	{
+		*stopCounter++;
+		*wheelDuty = 0; 
+	}
+
+	// count # of direction reversals
+	if (*lastWheelDir != currentMovement)
+		*stopDetection++;
+
+	// store last wheel movements
+	*lastWheelDir = currentMovement;
+
+	// if wheels reverse n times, set duties to 0
+	if (*stopDetection >= jiggleLimit)
+		*wheelDuty = 0;
+
+	// if rpms are 0 n times or rpms go back up, reset counters
+	if (*stopCounter >= stopLimit || currentRPM > rpmReset) {
+		*stopDetection = 0;
+		*stopCounter = 0;
+	}
+
+	//Optimize reverse spin
+	if (currentRPM > spinRpm)
+	{
+		*wheelDuty -= *wheelDuty / spinCutterStrength;
+
+		if (*wheelDuty < 40)
+			*wheelDuty = 0;
+	}
+
+	*currentDirection = decel;
+}
 
 void Brake(RPMS rpm)
 {
-	//VehicleDir --  forward 0, backward 1
-	//Serial.println(vehicleDir);
-
-	//Serial.println("Breaking");
-	//Serial.println(rpm.BL_RPM);
-	//Serial.println(rpm.FL_RPM);
-	//Serial.println(rpm.BR_RPM);
-	//Serial.println(rpm.FL_RPM);
-
-	//Serial.println(rpm.BL_Wheel_movement);
-	//Serial.println(rpm.FL_Wheel_movement);
-	//Serial.println(rpm.BR_Wheel_movement);
-	//Serial.println(rpm.FL_Wheel_movement);
-
-	/*		 brake speed from RPM as % of max RPM (1450)
-		range of brake speed from 40-100%*/
-	const float offset = 60.0;
 	const int minrpm = 2;
 
-	if (rpm.FL_RPM > minrpm)		//TODO change to by dynamic
+	// if wheels are still spinning, brakes will be applied with max power
+	if (rpm.FL_RPM > minrpm)
 		duties.FL_Duty = 100;
-	//else
-	//	duties.FL_Duty = 0;
 
 	if (rpm.FR_RPM > minrpm)
 		duties.FR_Duty = 100;
-	//else
-	//	duties.FR_Duty = 0;
 
 	if (rpm.BL_RPM > minrpm)
 		duties.BL_Duty = 100;
-	//else
-	//	duties.BL_Duty = 0;
 
 	if (rpm.BR_RPM > minrpm)
 		duties.BR_Duty = 100;
-	//else
-	//	duties.BR_Duty = 0;
 
-	//if (rpm.FL_RPM > minrpm)
-	//	duties.FL_Duty = (((100.0 - offset) / 1450.0) * rpm.FL_RPM) + offset;
-	//else
-	//	duties.FL_Duty = 0;
-
-	//if (rpm.FR_RPM > minrpm)
-	//	duties.FR_Duty = (((100.0 - offset) / 1450.0) * rpm.FL_RPM) + offset;
-	//else
-	//	duties.FR_Duty = 0;
-
-	//if (rpm.BL_RPM > minrpm)
-	//	duties.BL_Duty = (((100.0 - offset) / 1450.0) * rpm.FL_RPM) + offset;
-	//else
-	//	duties.BL_Duty = 0;
-
-	//if (rpm.BR_RPM > minrpm)
-	//	duties.BR_Duty = (((100.0 - offset) / 1450.0) * rpm.FL_RPM) + offset;
-	//else
-	//	duties.BR_Duty = 0;
-
-	//Serial.println(duties.FL_Duty);
-	//Serial.println(duties.FR_Duty);
-	//Serial.println(duties.BL_Duty);
-	//Serial.println(duties.BR_Duty);
-
-	// reverse directions to stop wheels
+	// stop wheels by reversing the direction of the motor
 	if (rpm.BL_Wheel_movement == forward) {
 		leftDir = Reverse;
 	}
@@ -425,13 +395,8 @@ void Brake(RPMS rpm)
 	FR_lastDir = rpm.FR_Wheel_movement;
 	FL_lastDir = rpm.FL_Wheel_movement;
 
-	int jiggleLimit = 2;
-
-	//Serial.println("detect");
-	//Serial.println(BL_stopDetection);
-	//Serial.println(FL_stopDetection);
-	//Serial.println(BR_stopDetection);
-	//Serial.println(FR_stopDetection);
+	// if the wheels switch directions this many times, the vehicle is stopped
+	const int jiggleLimit = 2;
 
 	// if wheels reverse n times, set duties to 0
 	if (BR_stopDetection >= jiggleLimit)
@@ -443,12 +408,6 @@ void Brake(RPMS rpm)
 	if (FL_stopDetection >= jiggleLimit)
 		duties.FL_Duty = 0;
 
-	Serial.println("Jiggle counters");
-	Serial.println(BR_stopDetection);
-	Serial.println(BL_stopDetection);
-	Serial.println(FR_stopDetection);
-	Serial.println(FL_stopDetection);
-
 	// if rpms are 0, count it
 	if (rpm.BR_Wheel_movement == stopped)		//Todo these arent adequately triggering
 		BR_stopCounter++;
@@ -459,14 +418,8 @@ void Brake(RPMS rpm)
 	if (rpm.FL_Wheel_movement == stopped)
 		FL_stopCounter++;
 
-	//Serial.println("Stop counters");
-	//Serial.println(BL_stopCounter);
-	//Serial.println(FL_stopCounter);
-	//Serial.println(BR_stopCounter);
-	//Serial.println(FR_stopCounter);
-
-	int stopLimit = 2; // 2
-	int rpmReset = 70; //70 OK? //20 //170 //lower number causes jittering, higher number causes no brake past low rpms
+	const int stopLimit = 2;
+	const int rpmReset = 70; //70 OK? //20 //170 //lower number causes jittering, higher number causes no brake past low rpms
 
 	//focus area ^ 
 

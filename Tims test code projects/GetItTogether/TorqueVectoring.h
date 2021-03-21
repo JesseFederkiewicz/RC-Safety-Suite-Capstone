@@ -34,5 +34,6 @@ typedef struct WheelAndRPM {
 void Drive(int angle, uint speedIn, RPMS rpm);
 void Steering(int angle, uint speedRequest, RPMS rpm);
 void Brake(RPMS rpm);
+void SingleWheelBrake(float currentRPM, float brakeToRPM, float* wheelDuty, Movement currentMovement, Movement* lastWheelDir, int* stopCounter, int* stopDetection, Accel_Or_Decel* currentDirection);
 
 #endif

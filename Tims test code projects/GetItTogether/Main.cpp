@@ -121,9 +121,7 @@ void ReadSerialPayload()
 
 		if (payload.length() < 12) return;
 
-		//payload.trim();
-
-		//Serial.println(payload);
+		Serial.println(payload);
 
 		JSONVar jason = JSON.parse(payload);
 
