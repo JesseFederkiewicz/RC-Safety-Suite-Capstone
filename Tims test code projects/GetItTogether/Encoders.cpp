@@ -297,28 +297,17 @@ void GetRPMS(RPMS* rpms)
 	rpms->BR_RPM = CalcRMP(br_Enc + br_Enc2);
 
 	// set wheel directions to stopped on 0 RPM
-	if (rpms->FL_RPM < 1) {
+	if (rpms->FL_RPM < 1) 
 		rpms->FL_Wheel_movement = stopped;
-	}
-	if (rpms->FR_RPM < 1) {
+	
+	if (rpms->FR_RPM < 1) 
 		rpms->FR_Wheel_movement = stopped;
-	}
-	if (rpms->BL_RPM < 1) {
+	
+	if (rpms->BL_RPM < 1) 
 		rpms->BL_Wheel_movement = stopped;
-	}
-	if (rpms->BR_RPM < 1) {
-		rpms->BR_Wheel_movement = stopped;
-	}
-
-	//Serial.printf("\n\nFL: %d - %d\n", fl_Enc, fl_Enc2);
-	//Serial.printf("FR: %d - %d\n", fr_Enc, fr_Enc2);
-	//Serial.printf("BL: %d - %d\n", bl_Enc, bl_Enc2);
-	//Serial.printf("BR: %d - %d\n", br_Enc, br_Enc2);
-
-	//Serial.println(fl_Enc);
-	//Serial.println(fr_Enc);
-	//Serial.println(bl_Enc);
-	//Serial.println(br_Enc);
+	
+	if (rpms->BR_RPM < 1) 
+		rpms->BR_Wheel_movement = stopped;	
 
 	pcnt_counter_clear(FL_Encoder.pcntUnit);
 	pcnt_counter_clear(FL_Encoder2.pcntUnit);

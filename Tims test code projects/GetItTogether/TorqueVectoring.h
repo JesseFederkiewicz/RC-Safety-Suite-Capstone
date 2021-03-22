@@ -6,17 +6,17 @@
 #include "Motors.h"
 #include "Encoders.h"
 
-typedef enum Accel_Or_Decel{
-	accel,
-	decel
-};
+//typedef enum Accel_Or_Decel{
+//	accel,
+//	decel
+//};
 
-typedef struct Current_Wheel_Direction {
-	Accel_Or_Decel FrontLeft;
-	Accel_Or_Decel BackLeft;
-	Accel_Or_Decel FrontRight;
-	Accel_Or_Decel BackRight;
-};
+//typedef struct Current_Wheel_Direction {
+//	Accel_Or_Decel FrontLeft;
+//	Accel_Or_Decel BackLeft;
+//	Accel_Or_Decel FrontRight;
+//	Accel_Or_Decel BackRight;
+//};
 
 typedef enum Wheel {
 	LF,
@@ -25,15 +25,18 @@ typedef enum Wheel {
 	RR
 };
 
-typedef struct WheelAndRPM {
+typedef struct WheelAndRPMs {
 	float rpm;
 	float desiredRpm;
 	Wheel wheel;
+	Movement movement;
 };
 
 void Drive(int angle, uint speedIn, RPMS rpm);
 void Steering(int angle, uint speedRequest, RPMS rpm);
+void UpdateDuty(WheelAndRPMs currentWheel, float* duty, WheelAndRPMs slowestWheel, uint speedRequest);
 void Brake(RPMS rpm);
-void SingleWheelBrake(float currentRPM, float brakeToRPM, float* wheelDuty, Movement currentMovement, Movement* lastWheelDir, int* stopCounter, int* stopDetection, Accel_Or_Decel* currentDirection);
+void SingleWheelBrake(WheelAndRPMs wheel, float* wheelDuty, Movement* lastWheelDir,
+						int* stopCounter, int* stopDetection);
 
 #endif

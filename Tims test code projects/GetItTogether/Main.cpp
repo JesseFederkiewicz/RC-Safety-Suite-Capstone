@@ -121,9 +121,9 @@ void ReadSerialPayload()
 
 		if (payload.length() < 12) return;
 
-		Serial.println(payload);
+		//Serial.println(payload);
 
-		JSONVar jason = JSON.parse(payload);
+		JSONVar jason = JSON.parse(payload);		
 
 		int tempStamp = atoi(jason["t"]);
 

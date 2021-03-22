@@ -89,7 +89,7 @@ String GrabData(bool isMainThread)
 
 					if (buff[i] == '}')
 					{
-						Serial.println(payload);
+						//Serial.println(payload);
 
 						////Check if a bad data object was returned
 						//if (payload.indexOf("Failed") > 0)
@@ -123,26 +123,21 @@ void SendReceiveSerial(String payload)
 	// read data from car
 	if (serialByteSize)
 	{
-		Serial.println(serialByteSize);
 		myMutex.lock();
 		_postString = Serial1.readStringUntil('!');
 		Serial1.flush();
 		myMutex.unlock();
 	}
-
 	Serial.println(payload);
-	Serial.println(_postString);
 
 	// send payload to car
 	if (Serial2.availableForWrite()) {
 
 		// send stop command on bad payload
 		if (payload == "badcode") {
-
 			Serial2.print(STOPCOMMAND);
 			return;
 		}
-
 		// send stop command on too many outdateds
 		if (payload == "outdated") {
 
