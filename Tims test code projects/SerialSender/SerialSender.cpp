@@ -18,9 +18,10 @@ bool _mainCoreSending = false;
 bool _secondCoreSending = true;
 int _lastTime = 0;
 int _outDatedCounter = 0;
+int _badCodeCounter = 0;
 
 // in the event of bad return data from the web server this will be sent to the master board to stop the car
-#define STOPCOMMAND "{\"a\":\"0\",\"s\":\"0\",\"t\":\"" + String(_lastTime) + "\"}!"
+#define STOPCOMMAND "{\"a\":\"0\",\"s\":\"0\",\"t\":\"" + String(_lastTime) + "\",\"tc\":\"0\",\"abs\":\"0\"}!"
 
 // values to send up to the database in post request
 int FL_RPM = 0;
@@ -57,7 +58,7 @@ String GrabData(bool isMainThread)
 	if (httpCode == HTTP_CODE_OK)
 	{
 		// create buffer for read
-		uint8_t buff[40] = { 0 };
+		uint8_t buff[65] = { 0 };
 
 		WiFiClient* stream;
 
@@ -103,7 +104,6 @@ String GrabData(bool isMainThread)
 						if (tempStamp > _lastTime || (_lastTime - tempStamp > 5000))
 						{
 							_lastTime = tempStamp;
-
 							return payload;
 						}
 						else
@@ -118,24 +118,30 @@ String GrabData(bool isMainThread)
 
 void SendReceiveSerial(String payload)
 {
-	//critical section
-	int serialByteSize = Serial1.available();
 	// read data from car
+	int serialByteSize = Serial1.available();
 	if (serialByteSize)
 	{
+		//critical section
 		myMutex.lock();
 		_postString = Serial1.readStringUntil('!');
 		Serial1.flush();
 		myMutex.unlock();
 	}
-	Serial.println(payload);
+	//Serial.println(payload);
+	//Serial.println(_postString);
 
 	// send payload to car
 	if (Serial2.availableForWrite()) {
 
 		// send stop command on bad payload
 		if (payload == "badcode") {
-			Serial2.print(STOPCOMMAND);
+			_badCodeCounter++;
+
+			if (_badCodeCounter == 2) {
+				Serial2.print(STOPCOMMAND);
+				_badCodeCounter = 0;
+			}
 			return;
 		}
 		// send stop command on too many outdateds
@@ -173,16 +179,9 @@ void Core0Loop(void* param)
 
 void Main()
 {
-	// Init Serial2 Monitor
 	Serial.begin(115200);
 	Serial2.begin(115200);
 	Serial1.begin(115200, SERIAL_8N1, 16);
-
-	//char* jesseSsid = "Cappy";
-	//char* jessePass = "ThisIs@nAdequateP@ss123";
-	//WiFi.begin(jesseSsid, jessePass);
-
-	//Serial.println("Connecting");
 
 	const char* timsssid = "_starLink";
 	const char* timspassword = "whatpassword";
@@ -191,12 +190,8 @@ void Main()
 
 	WiFi.begin(jesseSsid, jessePass);
 
-	//char* timssid = "hachey wifi 2.4 GHz";
-	//const char* timpassword = "38hachey";
-	//WiFi.begin(timssid, timpassword);
 	int connectionCounter = 0;
 
-	//Serial.println("Connecting");
 	while (WiFi.status() != WL_CONNECTED) {
 		delay(250);
 		connectionCounter++;
@@ -205,14 +200,12 @@ void Main()
 		{
 			WiFi.disconnect();
 			WiFi.begin(timsssid, timspassword);
-			//Serial.println("REConnecting");
+
 			while (WiFi.status() != WL_CONNECTED) {
 				delay(250);
 			}
 		}
 	}
-
-	//Serial.println("Connected");
 
 	// assign loop function for core 0
 	TaskHandle_t core0Task; // task handle for core 0 task
@@ -225,11 +218,10 @@ void Main()
 		&core0Task,  /* Task handle. */
 		0);          /* Core where the task should run */
 
-
 	delay(450);
 
 	_mainThread.begin(serverURL);
-	int i = 0;
+
 	for (;;)
 	{
 		if (_secondCoreSending)

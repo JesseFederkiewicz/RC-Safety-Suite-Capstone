@@ -5,12 +5,11 @@
 
 #include "TorqueVectoring.h"
 
+const float DUTYMAX = 100.0;
 const float DUTYMIN = 50.0; // the lowest duty cycle to spin the motors at, as any less wont turn them
 const int MAXRPM = 1300;    // wheel speed limit
 
 bool _firstPass = true;   // for initializing values on the first pass
-bool _TC_Active = true;   // for activating traction control
-bool _ABS_Active = false; // for activating anti-lock brakes
 
 int _BR_stopDetection = 0;
 int _BL_stopDetection = 0;
@@ -35,8 +34,10 @@ MotorDirection _rightDir; // direction of the right motors
 // this function will apply brakes when speed requested is zero, or
 // call the steering function to determine duty cycles, 
 // and then set motor directions and _duties
-void Drive(int angle, uint speedRequest, RPMS rpm)
+ActivedControls Drive(int angle, uint speedRequest, RPMS rpm, int tcLevel, int absLevel)
 {
+	ActivedControls actives = { false,false,0 };
+
 	if (speedRequest == 0) {
 		//Brake(rpm);
 
@@ -46,14 +47,15 @@ void Drive(int angle, uint speedRequest, RPMS rpm)
 		WheelAndRPMs lr = { rpm.BL_RPM, 0, LR, rpm.BL_Wheel_movement };
 		WheelAndRPMs rr = { rpm.BR_RPM, 0, RR, rpm.BR_Wheel_movement };
 
-		SingleWheelBrake(lr, &_duties.BL_Duty, &_BL_lastDir, &_BL_stopCounter, &_BL_stopDetection);
-		SingleWheelBrake(rr, &_duties.BR_Duty, &_BR_lastDir, &_BR_stopCounter, &_BR_stopDetection);
-		SingleWheelBrake(lf, &_duties.FL_Duty, &_FL_lastDir, &_FL_stopCounter, &_FL_stopDetection);
-		SingleWheelBrake(rf, &_duties.FR_Duty, &_FR_lastDir, &_FR_stopCounter, &_FR_stopDetection);
+		if (SingleWheelBrake(lr, &_duties.BL_Duty, &_BL_lastDir, &_BL_stopCounter, &_BL_stopDetection, absLevel) ||
+			SingleWheelBrake(rr, &_duties.BR_Duty, &_BR_lastDir, &_BR_stopCounter, &_BR_stopDetection, absLevel) ||
+			SingleWheelBrake(lf, &_duties.FL_Duty, &_FL_lastDir, &_FL_stopCounter, &_FL_stopDetection, absLevel) ||
+			SingleWheelBrake(rf, &_duties.FR_Duty, &_FR_lastDir, &_FR_stopCounter, &_FR_stopDetection, absLevel))
+			actives.absActivated = true;
 	}
 	else
 	{
-		Steering(angle, speedRequest, rpm);
+		actives = Steering(angle, speedRequest, rpm, tcLevel, absLevel);
 		_BR_stopDetection = 0;
 		_BL_stopDetection = 0;
 		_FR_stopDetection = 0;
@@ -62,15 +64,18 @@ void Drive(int angle, uint speedRequest, RPMS rpm)
 
 	SetMotorDirections(_leftDir, _rightDir);
 	SetMotorSpeeds(_duties);
+
+	return actives;
 }
 
 // calculates desired rpms for each wheel, based on requested speed and angle, using 
-void Steering(int angle, uint speedRequest, RPMS rpm)
+ActivedControls Steering(int angle, uint speedRequest, RPMS rpm, int tcLevel, int absLevel)
 {
 	//		  0
 	// -90			90
 	//		 180
 
+	ActivedControls actives = { false,false,0 };
 	float desired_LEFT_RPM;
 	float desired_RIGHT_RPM;
 
@@ -140,8 +145,9 @@ void Steering(int angle, uint speedRequest, RPMS rpm)
 		_rightDir = Reverse;
 
 		desired_LEFT_RPM = MAXRPM * (speedRequest / 100.0);
-
 		desired_RIGHT_RPM = desired_LEFT_RPM;
+
+		actives.burnout = 1;
 	}
 
 	//Burn left
@@ -152,6 +158,8 @@ void Steering(int angle, uint speedRequest, RPMS rpm)
 
 		desired_RIGHT_RPM = MAXRPM * (speedRequest / 100.0);
 		desired_LEFT_RPM = desired_RIGHT_RPM;
+
+		actives.burnout = 2;
 	}
 
 	// determine slowest wheel for TC purposes
@@ -181,28 +189,56 @@ void Steering(int angle, uint speedRequest, RPMS rpm)
 	WheelAndRPMs backRight = { rpm.BR_RPM, desired_RIGHT_RPM, RR, rpm.BR_Wheel_movement };
 	WheelAndRPMs frontRight = { rpm.FR_RPM, desired_RIGHT_RPM, RF, rpm.FR_Wheel_movement };
 
-	UpdateDuty(backLeft, &_duties.BL_Duty, slowestWheel, speedRequest);
-	UpdateDuty(frontLeft, &_duties.FL_Duty, slowestWheel, speedRequest);
-	UpdateDuty(backRight, &_duties.BR_Duty, slowestWheel, speedRequest);
-	UpdateDuty(frontRight, &_duties.FR_Duty, slowestWheel, speedRequest);
+	if (UpdateDuty(backLeft, &_duties.BL_Duty, slowestWheel, speedRequest, tcLevel, absLevel) ||
+		UpdateDuty(frontLeft, &_duties.FL_Duty, slowestWheel, speedRequest, tcLevel, absLevel) ||
+		UpdateDuty(backRight, &_duties.BR_Duty, slowestWheel, speedRequest, tcLevel, absLevel) ||
+		UpdateDuty(frontRight, &_duties.FR_Duty, slowestWheel, speedRequest, tcLevel, absLevel));
+		actives.tcActivated = true;
+
+	return actives;
 }
 
 // updates the duty cycle for a wheel based on current rpm, desired rpm, and the state of the slowest wheel if TC is active
-void UpdateDuty(WheelAndRPMs currentWheel, float* duty, WheelAndRPMs slowestWheel, uint speedRequest)
+bool UpdateDuty(WheelAndRPMs currentWheel, float *duty, WheelAndRPMs slowestWheel, uint speedRequest, int tcLevel, int absLevel)
 {
+	bool tcActivated = false;
+
 	//Serial.printf("\n\nwheel: %d", currentWheel.wheel);
 	//Serial.printf("\ndutyBefore: %f2", *duty);
 	//Serial.printf("\nactualRPM: %f2", currentWheel.rpm);
 	//Serial.printf("\ndesiredRPM1: %f2", currentWheel.desiredRpm);
 
 	// if traction control is enabled, update desired RPM to match slowest wheel, keeping the ratio for turns
-	if (_TC_Active && (currentWheel.wheel != slowestWheel.wheel))
-	{
-		if (currentWheel.rpm > slowestWheel.rpm + 50);
+	if (tcLevel && (currentWheel.wheel != slowestWheel.wheel))
+	{	
+		// used to invert the tcLevel value, so higher val = more traction
+		const int maxTC = 11;   
+
+		// the difference between the slowest wheel and the current wheel, needed to activate TC
+		float tractionDiff = (MAXRPM * (maxTC - tcLevel) / 20) - 50; 
+		/*
+			tcLevel - tractionDiff
+			----------------------
+			  10		15
+			  9			80
+			  8			145
+			  7			210
+			  6			270
+			  5			340
+			  4			405
+			  3			470
+			  2			535
+			  1			600
+			  0			n/a
+		*/
+		if (currentWheel.rpm > slowestWheel.rpm + tractionDiff);
 		{
 			float ratio = currentWheel.desiredRpm / slowestWheel.desiredRpm;
 
 			currentWheel.desiredRpm = slowestWheel.rpm * ratio;
+
+			// tc was actively changing wheel speeds, send this to database
+			tcActivated = true;
 		}
 	}
 	//Serial.printf("\ndesiredRPM2: %f2", currentWheel.desiredRpm);
@@ -210,10 +246,24 @@ void UpdateDuty(WheelAndRPMs currentWheel, float* duty, WheelAndRPMs slowestWhee
 	// wheel too fast, decrement duty
 	if (currentWheel.rpm > currentWheel.desiredRpm)
 	{
-		// possibly insert brakes here instead of regular decrement
-
 		if ((*duty -= 10) < 0)
 			*duty = 0;
+		// insert brakes here instead of regular decrement
+		//switch (currentWheel.wheel) 
+		//{
+		//case LF:
+		//	SingleWheelBrake(currentWheel, duty, &_FL_lastDir, &_FL_stopCounter, &_FL_stopDetection, absLevel);
+		//	break;
+		//case RF:
+		//	SingleWheelBrake(currentWheel, duty, &_FR_lastDir, &_FL_stopCounter, &_FL_stopDetection, absLevel);
+		//	break;
+		//case RR:
+		//	SingleWheelBrake(currentWheel, duty, &_BR_lastDir, &_FL_stopCounter, &_FL_stopDetection, absLevel);
+		//	break;
+		//case LR:
+		//	SingleWheelBrake(currentWheel, duty, &_BL_lastDir, &_FL_stopCounter, &_FL_stopDetection, absLevel);
+		//	break;
+		//}
 	}
 
 	// wheel too slow, increment duty
@@ -226,20 +276,19 @@ void UpdateDuty(WheelAndRPMs currentWheel, float* duty, WheelAndRPMs slowestWhee
 		float guessDuty = currentWheel.desiredRpm * (speedRequest / 1000.0) / (MAXRPM / 1000) / 2 + DUTYMIN - 10;
 
 		if (*duty >= guessDuty)
-		{
-			*duty += 1;
-		}
-		else {
-			*duty = guessDuty;
-		}
+			*duty += 1;		
+		else 
+			*duty = guessDuty;		
 	}
 	//Serial.printf("\ndutyAfter: %f2", *duty);
+	return tcActivated;
 }
 
 // applies braking to a single motor
-void SingleWheelBrake(WheelAndRPMs wheel, float* wheelDuty, Movement* lastWheelDir, 
-						int* stopCounter, int* stopDetection)
+bool SingleWheelBrake(WheelAndRPMs wheel, float* wheelDuty, Movement* lastWheelDir,
+						int* stopCounter, int* stopDetection, int absLevel)
 {
+	bool absActivated = false;
 	const int jiggleLimit = 2; // if the wheels switch directions this many times, the vehicle is stopped
 	const int stopLimit = 2;
 	const int rpmReset = 70;   // 70 OK? //20 //170 //lower number causes jittering, higher number causes no brake past low rpms
@@ -248,9 +297,16 @@ void SingleWheelBrake(WheelAndRPMs wheel, float* wheelDuty, Movement* lastWheelD
 	const int spinCutterStrength = 4;
 	const int spinRpm = 5;
 
-	// if wheels are still spinning, brakes will be applied with max power
-	if (wheel.rpm > wheel.desiredRpm)
-		*wheelDuty = 100;
+	// no abs, apply brakes with full power
+	if (!absLevel && wheel.rpm > wheel.desiredRpm)
+		*wheelDuty = DUTYMAX;
+
+	// abs active, use transfer function to give less duty as wheels slow down
+	else if(absLevel && wheel.rpm > wheel.desiredRpm)
+	{
+		// transfer function of RPM to duty of 50-100%
+		*wheelDuty = wheel.rpm * ((DUTYMAX - DUTYMIN) / (MAXRPM - wheel.desiredRpm)) + DUTYMIN;
+	}	
 
 	// stop wheels by reversing the direction of the motor
 	switch (wheel.wheel)
@@ -306,6 +362,7 @@ void SingleWheelBrake(WheelAndRPMs wheel, float* wheelDuty, Movement* lastWheelD
 		if (*wheelDuty < 40)
 			*wheelDuty = 0;
 	}
+	return absActivated;
 }
 
 //void Brake(RPMS rpm)

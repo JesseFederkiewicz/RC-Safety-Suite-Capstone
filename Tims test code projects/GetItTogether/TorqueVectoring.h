@@ -18,6 +18,12 @@
 //	Accel_Or_Decel BackRight;
 //};
 
+typedef struct ActivedControls {
+	bool tcActivated;
+	bool absActivated;
+	int burnout;
+};
+
 typedef enum Wheel {
 	LF,
 	RF,
@@ -32,11 +38,11 @@ typedef struct WheelAndRPMs {
 	Movement movement;
 };
 
-void Drive(int angle, uint speedIn, RPMS rpm);
-void Steering(int angle, uint speedRequest, RPMS rpm);
-void UpdateDuty(WheelAndRPMs currentWheel, float* duty, WheelAndRPMs slowestWheel, uint speedRequest);
-void Brake(RPMS rpm);
-void SingleWheelBrake(WheelAndRPMs wheel, float* wheelDuty, Movement* lastWheelDir,
-						int* stopCounter, int* stopDetection);
+ActivedControls Drive(int angle, uint speedIn, RPMS rpm, int tcLevel, int absLevel);
+ActivedControls Steering(int angle, uint speedRequest, RPMS rpm, int tcLevel, int absLevel);
+bool UpdateDuty(WheelAndRPMs currentWheel, float* duty, WheelAndRPMs slowestWheel, uint speedRequest, int tcLevel, int absLevel);
+//void Brake(RPMS rpm);
+bool SingleWheelBrake(WheelAndRPMs wheel, float* wheelDuty, Movement* lastWheelDir,
+						int* stopCounter, int* stopDetection, int absLevel);
 
 #endif
