@@ -14,7 +14,19 @@ int _intendedSpeed = 0;
 int _timeStamp = 1;
 int _absLevel = 0;
 int _tcLevel = 0;
-int _bip = 0;
+
+// value for the ground speed sensor to increment during interrupts
+int _groundSpeedCount = 0;
+
+// values for determining the direction of wheel spin using the matrix above
+int LFvalOld = 0;
+int LFvalNew = 0;
+int RFvalOld = 0;
+int RFvalNew = 0;
+int RRvalOld = 0;
+int RRvalNew = 0;
+int LRvalOld = 0;
+int LRvalNew = 0;
 
 // speed and direction of each wheel
 RPMS _rpms = { 0,0,0,0,stopped,stopped,stopped,stopped };
@@ -29,19 +41,6 @@ Movement QEM[16] = { stopped,backward,forward,X,
 					 forward,stopped,X,backward,
 					 backward,X,stopped,forward,
 					 X,forward,backward,stopped };
-
-// values for determining the direction of wheel spin using the matrix above
-int LFvalOld = 0;
-int LFvalNew = 0;
-int RFvalOld = 0;
-int RFvalNew = 0;
-int RRvalOld = 0;
-int RRvalNew = 0;
-int LRvalOld = 0;
-int LRvalNew = 0;
-
-// value for the ground speed sensor to increment during interrupts
-int _groundSpeedCount = 0;
 
 // timer ISR, all functionality in main
 void IRAM_ATTR TimerInt()
@@ -166,10 +165,8 @@ void Main()
 		0);          /* Core where the task should run */
 
 	// only send serial data every n intervals, dont want to send too fast
-	int sendTimer = 0;
 	const int sendInterval = 12;
-
-	ActivedControls actives = { false,true };
+	int sendTimer = 0;
 
 	for (;;)
 	{
@@ -183,6 +180,7 @@ void Main()
 
 			_rpms.GroundSpeedCount = _groundSpeedCount;
 
+			ActiveControls actives = { false,false,0 };
 			actives = Drive(_intendedAngle, _intendedSpeed, _rpms, _tcLevel, _absLevel);
 
 			// send data to slave board every n intervals

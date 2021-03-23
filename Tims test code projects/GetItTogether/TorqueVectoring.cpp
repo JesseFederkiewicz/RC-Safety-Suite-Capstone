@@ -34,11 +34,12 @@ MotorDirection _rightDir; // direction of the right motors
 // this function will apply brakes when speed requested is zero, or
 // call the steering function to determine duty cycles, 
 // and then set motor directions and _duties
-ActivedControls Drive(int angle, uint speedRequest, RPMS rpm, int tcLevel, int absLevel)
+ActiveControls Drive(int angle, uint speedRequest, RPMS rpm, int tcLevel, int absLevel)
 {
-	ActivedControls actives = { false,false,0 };
+	ActiveControls actives = { false,false,0 };
 
-	if (speedRequest == 0) {
+	if (speedRequest == 0) 
+	{
 		//Brake(rpm);
 
 		// assign zero desired rpm for full stop
@@ -47,10 +48,13 @@ ActivedControls Drive(int angle, uint speedRequest, RPMS rpm, int tcLevel, int a
 		WheelAndRPMs lr = { rpm.BL_RPM, 0, LR, rpm.BL_Wheel_movement };
 		WheelAndRPMs rr = { rpm.BR_RPM, 0, RR, rpm.BR_Wheel_movement };
 
-		if (SingleWheelBrake(lr, &_duties.BL_Duty, &_BL_lastDir, &_BL_stopCounter, &_BL_stopDetection, absLevel) ||
-			SingleWheelBrake(rr, &_duties.BR_Duty, &_BR_lastDir, &_BR_stopCounter, &_BR_stopDetection, absLevel) ||
-			SingleWheelBrake(lf, &_duties.FL_Duty, &_FL_lastDir, &_FL_stopCounter, &_FL_stopDetection, absLevel) ||
-			SingleWheelBrake(rf, &_duties.FR_Duty, &_FR_lastDir, &_FR_stopCounter, &_FR_stopDetection, absLevel))
+		if (SingleWheelBrake(lr, &_duties.BL_Duty, &_BL_lastDir, &_BL_stopCounter, &_BL_stopDetection, absLevel))
+			actives.absActivated = true;
+		if (SingleWheelBrake(rr, &_duties.BR_Duty, &_BR_lastDir, &_BR_stopCounter, &_BR_stopDetection, absLevel))
+			actives.absActivated = true;
+		if (SingleWheelBrake(lf, &_duties.FL_Duty, &_FL_lastDir, &_FL_stopCounter, &_FL_stopDetection, absLevel))
+			actives.absActivated = true;
+		if (SingleWheelBrake(rf, &_duties.FR_Duty, &_FR_lastDir, &_FR_stopCounter, &_FR_stopDetection, absLevel))
 			actives.absActivated = true;
 	}
 	else
@@ -69,13 +73,13 @@ ActivedControls Drive(int angle, uint speedRequest, RPMS rpm, int tcLevel, int a
 }
 
 // calculates desired rpms for each wheel, based on requested speed and angle, using 
-ActivedControls Steering(int angle, uint speedRequest, RPMS rpm, int tcLevel, int absLevel)
+ActiveControls Steering(int angle, uint speedRequest, RPMS rpm, int tcLevel, int absLevel)
 {
 	//		  0
 	// -90			90
 	//		 180
 
-	ActivedControls actives = { false,false,0 };
+	ActiveControls actives = { false,false,0 };
 	float desired_LEFT_RPM;
 	float desired_RIGHT_RPM;
 
@@ -189,10 +193,13 @@ ActivedControls Steering(int angle, uint speedRequest, RPMS rpm, int tcLevel, in
 	WheelAndRPMs backRight = { rpm.BR_RPM, desired_RIGHT_RPM, RR, rpm.BR_Wheel_movement };
 	WheelAndRPMs frontRight = { rpm.FR_RPM, desired_RIGHT_RPM, RF, rpm.FR_Wheel_movement };
 
-	if (UpdateDuty(backLeft, &_duties.BL_Duty, slowestWheel, speedRequest, tcLevel, absLevel) ||
-		UpdateDuty(frontLeft, &_duties.FL_Duty, slowestWheel, speedRequest, tcLevel, absLevel) ||
-		UpdateDuty(backRight, &_duties.BR_Duty, slowestWheel, speedRequest, tcLevel, absLevel) ||
-		UpdateDuty(frontRight, &_duties.FR_Duty, slowestWheel, speedRequest, tcLevel, absLevel));
+	if (UpdateDuty(backLeft, &_duties.BL_Duty, slowestWheel, speedRequest, tcLevel, absLevel))
+		actives.tcActivated = true;
+	if (UpdateDuty(frontLeft, &_duties.FL_Duty, slowestWheel, speedRequest, tcLevel, absLevel))
+		actives.tcActivated = true;
+	if (UpdateDuty(backRight, &_duties.BR_Duty, slowestWheel, speedRequest, tcLevel, absLevel))
+		actives.tcActivated = true;
+	if (UpdateDuty(frontRight, &_duties.FR_Duty, slowestWheel, speedRequest, tcLevel, absLevel))
 		actives.tcActivated = true;
 
 	return actives;
@@ -297,16 +304,26 @@ bool SingleWheelBrake(WheelAndRPMs wheel, float* wheelDuty, Movement* lastWheelD
 	const int spinCutterStrength = 4;
 	const int spinRpm = 5;
 
+	// used to invert the absLevel value, so higher val = stricter ABS
+	const int maxABS = 11;
+
 	// no abs, apply brakes with full power
 	if (!absLevel && wheel.rpm > wheel.desiredRpm)
 		*wheelDuty = DUTYMAX;
 
-	// abs active, use transfer function to give less duty as wheels slow down
-	else if(absLevel && wheel.rpm > wheel.desiredRpm)
+	else if (absLevel && wheel.rpm > wheel.desiredRpm + 10)
 	{
-		// transfer function of RPM to duty of 50-100%
-		*wheelDuty = wheel.rpm * ((DUTYMAX - DUTYMIN) / (MAXRPM - wheel.desiredRpm)) + DUTYMIN;
-	}	
+		//float temp = wheel.rpm * ((DUTYMAX - DUTYMIN) / (MAXRPM - wheel.desiredRpm)) + DUTYMIN + (absLevel * 5);
+		float temp = DUTYMAX + 5 - ((maxABS - absLevel) * 5);
+		*wheelDuty = temp;
+		absActivated = true;
+	}
+	else if(absLevel)
+	{
+		*wheelDuty = 0;
+		absActivated = true;
+	}
+	Serial.printf("\nduty: %f2", *wheelDuty);
 
 	// stop wheels by reversing the direction of the motor
 	switch (wheel.wheel)
