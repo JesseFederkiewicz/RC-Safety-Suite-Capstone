@@ -58,7 +58,7 @@ String GrabData(bool isMainThread)
 	if (httpCode == HTTP_CODE_OK)
 	{
 		// create buffer for read
-		uint8_t buff[65] = { 0 };
+		uint8_t buff[75] = { 0 };
 
 		WiFiClient* stream;
 
@@ -90,7 +90,7 @@ String GrabData(bool isMainThread)
 
 					if (buff[i] == '}')
 					{
-						//Serial.println(payload);
+						Serial.println(payload);
 
 						////Check if a bad data object was returned
 						//if (payload.indexOf("Failed") > 0)

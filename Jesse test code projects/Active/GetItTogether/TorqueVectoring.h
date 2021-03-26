@@ -6,20 +6,29 @@
 #include "Motors.h"
 #include "Encoders.h"
 
-typedef enum Accel_Or_Decel{
-	accel,
-	decel
+typedef struct ActiveControls {
+	bool tcActivated;
+	bool absActivated;
+	int burnout;
 };
 
-typedef struct Current_Wheel_Direction {
-	Accel_Or_Decel FrontLeft;
-	Accel_Or_Decel BackLeft;
-	Accel_Or_Decel FrontRight;
-	Accel_Or_Decel BackRight;
+typedef enum Wheel {
+	LF,
+	RF,
+	LR,
+	RR
 };
 
-void Drive(int angle, uint speedIn, RPMS rpm);
-void Steering(int angle, uint speedRequest, RPMS rpm);
-void Brake(RPMS rpm);
+typedef struct WheelAndRPMs {
+	float rpm;
+	float desiredRpm;
+	Wheel wheel;
+	Movement movement;
+};
 
+ActiveControls Drive(int angle, uint speedIn, RPMS rpm, int tcLevel, int absLevel, int brakeStrength);
+ActiveControls Steering(int angle, uint speedRequest, RPMS rpm, int tcLevel, int absLevel);
+bool UpdateDuty(WheelAndRPMs currentWheel, float* duty, WheelAndRPMs slowestWheel, uint speedRequest, int tcLevel, int absLevel);
+bool SingleWheelBrake(WheelAndRPMs wheel, float* wheelDuty, Movement* lastWheelDir,
+						int* stopCounter, int* stopDetection, int absLevel, int brakeStrength);
 #endif

@@ -22,6 +22,9 @@ CREATE TABLE IF NOT EXISTS `web_to_car` (
   `userID` int NOT NULL,
   `intendedAngle` int NOT NULL,
   `intendedSpeed` int NOT NULL,
+  `TC_Level` int NOT NULL,
+  `ABS_Level` int NOT NULL,
+  `Brake_Strength` int NOT NULL,
   `timeStamp` int NOT NULL,
   PRIMARY KEY (`carID`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;

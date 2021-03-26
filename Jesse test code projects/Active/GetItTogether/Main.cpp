@@ -4,29 +4,20 @@
 // 
 
 #include "Main.h"
+#include "mutex"
 
-// values for driving
+std::mutex _mutex; // used for locking values used between cores
+
+// values for driving, from the database/serial board
 int _intendedAngle = 0;
 int _intendedSpeed = 0;
 int _timeStamp = 1;
-RPMS _rpms = { 0,0,0,0,stopped,stopped,stopped,stopped };
-int _absActive = 0;
-int _tcActive = 0;
-int _bip = 0;
+int _absLevel = 0;
+int _brakeStrength = 0;
+int _tcLevel = 0;
 
-
-// interrupt stuff:
-volatile bool timerIntFlag = false;	// flag for use in main for actual code to run every interrupt interval
-volatile bool encIntFlag = false;
-
-portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;   // used for syncing main and isr, ignore this red squiggle, still works
-portMUX_TYPE encoderMux = portMUX_INITIALIZER_UNLOCKED;
-
-// Quadrature Encoder Matrix courtesy of: https://cdn.sparkfun.com/datasheets/Robotics/How%20to%20use%20a%20quadrature%20encoder.pdf
-Movement QEM[16] = { stopped,backward,forward,X,
-					 forward,stopped,X,backward,
-					 backward,X,stopped,forward,
-					 X,forward,backward,stopped };
+// value for the ground speed sensor to increment during interrupts
+int _groundSpeedCount = 0;
 
 // values for determining the direction of wheel spin using the matrix above
 int LFvalOld = 0;
@@ -38,8 +29,19 @@ int RRvalNew = 0;
 int LRvalOld = 0;
 int LRvalNew = 0;
 
-// value for the ground speed sensor to increment during interrupts
-int _groundSpeedCount = 0;
+// speed and direction of each wheel
+RPMS _rpms = { 0,0,0,0,stopped,stopped,stopped,stopped };
+
+// interrupt stuff:
+volatile bool timerIntFlag = false;	// flag for use in main for actual code to run every interrupt interval
+
+portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED; // used for syncing main and isr, ignore this red squiggle, still works
+
+// Quadrature Encoder Matrix courtesy of: https://cdn.sparkfun.com/datasheets/Robotics/How%20to%20use%20a%20quadrature%20encoder.pdf
+Movement QEM[16] = { stopped,backward,forward,X,
+					 forward,stopped,X,backward,
+					 backward,X,stopped,forward,
+					 X,forward,backward,stopped };
 
 // timer ISR, all functionality in main
 void IRAM_ATTR TimerInt()
@@ -72,33 +74,21 @@ void GetWheelDir(int* oldval, int* newVal, Movement* wheelDir, uint8_t enc1, uin
 void IRAM_ATTR EncoderIntLF()
 {
 	GetWheelDir(&LFvalOld, &LFvalNew, &_rpms.FL_Wheel_movement, GPIO_NUM_34, GPIO_NUM_32);
-	//portENTER_CRITICAL_ISR(&encoderMux);
-	//encIntFlag = true;
-	//portEXIT_CRITICAL_ISR(&encoderMux);
 }
 
 void IRAM_ATTR EncoderIntRF()
 {
 	GetWheelDir(&RFvalOld, &RFvalNew, &_rpms.FR_Wheel_movement, GPIO_NUM_33, GPIO_NUM_35);
-	//portENTER_CRITICAL_ISR(&encoderMux);
-	//encIntFlag = true;
-	//portEXIT_CRITICAL_ISR(&encoderMux);
 }
 
 void IRAM_ATTR EncoderIntRR()
 {
 	GetWheelDir(&RRvalOld, &RRvalNew, &_rpms.BR_Wheel_movement, GPIO_NUM_25, GPIO_NUM_14);
-	//portENTER_CRITICAL_ISR(&encoderMux);
-	//encIntFlag = true;
-	//portEXIT_CRITICAL_ISR(&encoderMux);
 }
 
 void IRAM_ATTR EncoderIntLR()
 {
 	GetWheelDir(&LRvalOld, &LRvalNew, &_rpms.BL_Wheel_movement, GPIO_NUM_27, GPIO_NUM_26);
-	//portENTER_CRITICAL_ISR(&encoderMux);
-	//encIntFlag = true;
-	//portEXIT_CRITICAL_ISR(&encoderMux);
 }
 
 // ground speed sensor ISR
@@ -118,24 +108,22 @@ void ReadSerialPayload()
 
 		if (payload.length() < 12) return;
 
-		//payload.trim();
-
 		//Serial.println(payload);
 
-		JSONVar jason = JSON.parse(payload);
+		JSONVar jason = JSON.parse(payload);		
 
 		int tempStamp = atoi(jason["t"]);
 
 		if (tempStamp > _timeStamp || (_timeStamp - tempStamp > 5000))
 		{
+			_mutex.lock();
 			_intendedAngle = atoi(jason["a"]);
 			_intendedSpeed = atoi(jason["s"]);
+			_tcLevel = atoi(jason["tc"]);
+			_absLevel = atoi(jason["abs"]);
+			_brakeStrength = atoi(jason["bs"]);
 			_timeStamp = tempStamp;
-
-			//Serial.println(_intendedAngle);
-			//Serial.println(_intendedSpeed);
-			//Serial.println(_timeStamp);
-			//Serial.println();
+			_mutex.unlock();
 		}
 	}
 }
@@ -179,8 +167,8 @@ void Main()
 		0);          /* Core where the task should run */
 
 	// only send serial data every n intervals, dont want to send too fast
-	int sendTimer = 0;
 	const int sendInterval = 12;
+	int sendTimer = 0;
 
 	for (;;)
 	{
@@ -194,13 +182,8 @@ void Main()
 
 			_rpms.GroundSpeedCount = _groundSpeedCount;
 
-			Drive(_intendedAngle, _intendedSpeed, _rpms);
-
-			//Serial.println("RPMS");
-			//Serial.println(_rpms.FL_RPM);
-			//Serial.println(_rpms.FR_RPM);
-			//Serial.println(_rpms.BL_RPM);
-			//Serial.println(_rpms.BR_RPM);
+			ActiveControls actives = { false,false,0 };
+			actives = Drive(_intendedAngle, _intendedSpeed, _rpms, _tcLevel, _absLevel, _brakeStrength);
 
 			// send data to slave board every n intervals
 			if (Serial1.availableForWrite() && sendTimer >= sendInterval)
@@ -212,9 +195,9 @@ void Main()
 				data += "&BL_RPM=" + String((int)_rpms.BL_RPM);
 				data += "&BR_RPM=" + String((int)_rpms.BR_RPM);
 				data += "&GSP=" + String(_groundSpeedCount);
-				data += "&TC=" + String(_tcActive);
-				data += "&ABS=" + String(_absActive);
-				data += "&BIP=" + String(_bip);
+				data += "&TC=" + String(actives.tcActivated);
+				data += "&ABS=" + String(actives.absActivated);
+				data += "&BIP=" + String(actives.burnout);
 
 				//Serial.println(data);
 				Serial1.print(data + "!");
@@ -224,17 +207,5 @@ void Main()
 			}
 			sendTimer++;
 		}
-
-		//if (encIntFlag)
-		//{
-		//	portENTER_CRITICAL_ISR(&encoderMux);
-		//	encIntFlag = false;
-		//	portEXIT_CRITICAL_ISR(&encoderMux);
-
-		//	//Serial.printf("\nLF: %d", _rpms.FL_Wheel_movement);		
-		//	//Serial.printf("\nRF: %d", _rpms.FR_Wheel_movement);	
-		//	//Serial.printf("\nRR: %d", _rpms.BR_Wheel_movement);		
-		//	//Serial.printf("\nLR: %d", _rpms.BL_Wheel_movement);		
-		//}
 	}
 }
