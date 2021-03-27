@@ -101,7 +101,7 @@
     </div>
 
     <div class = "text-center footer">
-            &copy;2020 by Jesse Federkiewicz<br><script>document.write('Last Modified: ' + document.lastModified)</script>
+            &copy;&copy Copyright 2020 by Jesse Federkiewicz & Timothy Hachey<br><script>document.write('Last Modified: ' + document.lastModified)</script>
     </div>
 </body>
 </html>

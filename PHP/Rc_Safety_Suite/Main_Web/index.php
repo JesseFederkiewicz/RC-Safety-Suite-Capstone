@@ -29,16 +29,16 @@ if( !isset($_SESSION["user"])) // not authenticated, does exist
     </div>
     <form action="login.php" method="post" id = "indexSite">
         <div id = "tagSettings" class = text-right>
-        <a href = "./settings.php" class = "text-center">Settings</a><br>
+        <a href = "./settings.php?nocache=1" class = "text-center">Settings</a><br>
         <?php
           echo "Tag {$_SESSION['user']}";
         ?>
         </div>
         <div id = "messages">
-        Messages<br><a href = "./carControl.php">Car Control</a>
+        <a href = "./pastDrives.php?nocache=1">Past Drives</a><br><a href = "./carControl.php?nocache=1">Car Control</a>
         </div>
 
-        <input type="submit" name="submit" value="logout" id = logoutBtn>
+        <input type="submit" name="submit" value="Logout" id = logoutBtn>
     </form>
 
     <div class=text-center id = 'status-container'>
@@ -47,7 +47,7 @@ if( !isset($_SESSION["user"])) // not authenticated, does exist
     ?>
     </div>
     <div class="text-center">
-      &copy Copyright 2020 by Jesse Federkiewicz<br/>
+    <br>&copy Copyright 2020 by Jesse Federkiewicz & Timothy Hachey<br/>
       <script>document.write('Last Modified:' + document.lastModified);</script>
     </div>
   </body>

@@ -7,7 +7,7 @@
     //Form Processing//
 
     //logout processing
-    if (isset($_POST['submit']) && $_POST['submit'] == 'logout') 
+    if (isset($_POST['submit']) && $_POST['submit'] == 'Logout') 
     {
         session_unset();
         session_destroy();
@@ -32,6 +32,7 @@
         {
             //Set the session
             $_SESSION['user'] = $loginParams['user'];
+            
             $_SESSION['valid'] = true;
             
             //Redirect to main page
@@ -76,7 +77,7 @@
     </div>
 
     <div class = "text-center footer">
-            &copy;2020 by Jesse Federkiewicz<br><script>document.write('Last Modified: ' + document.lastModified)</script>
+            <br>&copy; Copyright 2020 by Jesse Federkiewicz & Timothy Hachey<br><script>document.write('Last Modified: ' + document.lastModified)</script>
     </div>
 </body>
 </html>

@@ -5,6 +5,11 @@ let lastTime = 0;
 let intendedAngle = 0;
 let speedAsPercent = 0;
 let joystick;
+let restartSong = true;
+$carID = null;
+let audio = null;
+let ajaxIntervalID;
+let pullDataIntervalID;
 
 class JoystickController
 {
@@ -135,25 +140,144 @@ $(document).ready ( () => {
 
 	$('#carControl').hide();
 
+	$("#tcSlider").change ( () => {
+		$("#tcSliderLbl").html("TC Level [" + $("#tcSlider").val() + "]");
+	});
+
+	$("#absSlider").change ( () => {
+		$("#absSliderLbl").html("ABS Level [" + $("#absSlider").val() + "]");
+	});
+
+	$('#toIndexCarControl').click( () =>{
+        window.location.replace("./index.php");
+    });
+
+	$('#hardCodedTesting').click( () =>{
+		$('#chooseCar').show();
+		$('#carControl').hide();
+
+		clearInterval(ajaxIntervalID);
+		clearInterval(pullDataIntervalID);
+    });
+
+	$('#hardcodeGoBtn').click ( () => {
+		let angle = $("#hardCodeAngle").val();
+		let speed = $("#hardCodeSpeed").val();
+		FixedSendData(speed, angle);
+	});
+
+	$('#hardcodeStopBtn').click ( () => {
+
+		document.getElementById("hardCodeAngle").setAttribute("value", 0);
+		document.getElementById("hardCodeSpeed").setAttribute("value", 0);
+
+		FixedSendData(0, 0);
+	});
+
+
+	$('#timerHardCode').click ( () => {
+		BrakeTestHardCode();
+	});
+
+
+
 	GetCarCount();
+	
+	window.addEventListener('resize', SizeGauge);
+
+	//audio = document.getElementById("roundAndRound");
+
+	//Preload mp3
+	//audio.volume = 0;
+
+	//Need to update 
+	//FillUserCars();
 });
+
+window.onload = (event) =>{
+
+	// //Set up the speedo size
+	// let gauge = document.getElementById("speedGauge");
+
+	// var speedGaugeHeight = $("#speedGaugeDiv").css('height');
+	// speedGaugeHeight = speedGaugeHeight.substring(0, speedGaugeHeight.length - 2);
+
+	// var speedGaugeWidth = $("#speedGaugeDiv").css('width');
+	// speedGaugeWidth = speedGaugeWidth.substring(0, speedGaugeWidth.length - 2);
+
+	// gauge.setAttribute("data-height", `${speedGaugeHeight}`);
+	// gauge.setAttribute("data-width", `${speedGaugeWidth}`);
+
+};
+
 
 function update()
 {
-	document.getElementById("status1").innerText = "Joystick: " + JSON.stringify(joyStick.value);
+	document.getElementById("xyCoords").innerText = "Joystick: " + JSON.stringify(joyStick.value);
 }
 
 function loop()
 {
 	requestAnimationFrame(loop);
 	update();
+	DoGaugeStuff();
+}
+
+function DoGaugeStuff()
+{
+	SizeGauge();
+
+	let FL_RPM = (Number)($("#FL_RPM").html());
+	let BL_RPM = (Number)($("#BL_RPM").html());
+	let FR_RPM = (Number)($("#FR_RPM").html());
+	let BR_RPM = (Number)($("#BR_RPM").html());
+
+	let speed = (FL_RPM + BL_RPM + FR_RPM + BR_RPM) / 4 * 6.5 * 0.001885;
+	document.getElementById("speedGauge").setAttribute("data-value", `${speed}`);
 }
 
 function GetCarCount()
 {
 	let data = {};
 	data['action'] = "GetCarCount";
-	AjaxRequest('./webservice.php', 'POST', data, 'json', SetUpItems, Fail)
+	AjaxRequest('./webservice.php', 'POST', data, 'json', SetUpItems, SetUpItems) // fail
+}
+
+function FillUserCars()
+{
+    let data = {};
+    data['action'] = 'GetUserCars';
+
+    //Send ajax request
+    AjaxRequest('./webservice.php', 'POST', data, 'json', FillCarsSelect, Fail)
+}
+
+function FillCarsSelect(data, response)
+{
+    let select = $('#yourCarNum');
+    (select).html("");
+
+    let isFirst = true;
+
+    data['data'].forEach(e => {
+        let option = document.createElement("option");
+
+        $(option).prop({"value" : e['carID'], "innerHTML" : "Car " + e['carID']})
+
+        if (isFirst)
+        {
+            $(option).prop("selected", true);
+            isFirst = false;
+        }
+
+        $(select).append(option);
+    });
+
+
+
+
+
+    FillCarDrives($(select).val());       //to take select value
 }
 
 function SetUpItems (data, response)
@@ -203,7 +327,10 @@ function SetUpItems (data, response)
 	$(select).change( () => {
 		$(selCarBtn).prop("value", "Control Car #" + $(select).val());
 		$(delCarBtn).prop("value", "Delete Car #" + $(select).val());
+		$carID = $(select).val()
 	});
+
+	$carID = $(select).val()
 
 
 
@@ -218,7 +345,7 @@ function SetUpItems (data, response)
 	$(delCarBtn).click ( () => {
 		let sendData = {};
 		sendData['action'] = "deleteCar";
-		sendData['carID'] = $(select).val();
+		sendData['carID'] = $carID;
 
 		AjaxRequest('./webservice.php', 'POST', sendData, 'json', GetCarCount, Fail)
 	});
@@ -232,8 +359,10 @@ function SetUpItems (data, response)
 		AjaxRequest('./webservice.php', 'POST', data, 'json', DisplayControls, Fail)
 
 		let interval = 200;
-		setInterval(SendData, interval);
+		ajaxIntervalID = setInterval(AjaxData, interval);
+		pullDataIntervalID = setInterval(ReceiveData, interval * 3);
 		loop();
+
 	
 	});
 }
@@ -243,7 +372,28 @@ function DisplayControls(data, response)
 	$('#carControlBanner').html("Controlling car #" + $('#whichCarSel').val());
 
 	$('#chooseCar').hide();
-	$('#carControl').show();	
+	$('#carControl').show();
+	
+	// window.dispatchEvent(new Event('resize'));
+	SizeGauge();
+}
+
+function SizeGauge()
+{
+	//Set up the speedo size
+	let gauge = document.getElementById("speedGauge");
+
+	var speedGaugeHeight = $("#speedGaugeDiv").css('height');
+	speedGaugeHeight = speedGaugeHeight.substring(0, speedGaugeHeight.length - 2);
+
+	var speedGaugeWidth = $("#speedGaugeDiv").css('width');
+	speedGaugeWidth = speedGaugeWidth.substring(0, speedGaugeWidth.length - 2);
+
+	gauge.setAttribute("data-height", `${speedGaugeHeight}`);
+	gauge.setAttribute("data-width", `${speedGaugeWidth}`);
+
+	// gauge.setAttribute('width', speedGaugeWidth);
+	// gauge.setAttribute('height', speedGaugeHeight);
 }
 
 //////////////////////////////////////////////
@@ -280,13 +430,17 @@ function CarSimReq(data, response)
 }
 
 //Happens every 250ms send data to webserver
-function SendData()
+function AjaxData()
 {
+	//Send Data
 	let data = {};
     data['action'] = 'web_to_car_Data';
     data['carID'] = $('#whichCarSel').val();              
 	data['intendedAngle'] = intendedAngle;
 	data['intendedSpeed'] = speedAsPercent;
+	data['brakeStrength'] = $("#brakeSlider").val();
+	data['TC_Level'] = $("#tcSlider").val();
+	data['ABS_Level'] = $("#absSlider").val();
 	
             //Date.now() returns number of ms from January 1, 1970, parsed to keep track of 1 minute in ms
     //For unsigned 16bit int (0 - 65,535), and as little wrapping as little as possible
@@ -294,18 +448,121 @@ function SendData()
     data['timeStamp'] = Date.now() % 60000;     //returns number of ms from January 1, 1970, good for timeout comparison
 	//parsed to last 4 digits for data storage as its essentially acting as a timer
 
-	AjaxRequest('./webservice.php', 'POST', data, 'json', HandleStatus, Fail)
-	
+	AjaxRequest('./webservice.php', 'POST', data, 'json', HandleStatus, Fail)	
 }
 
-function FetchData()
+let testTimer;
+
+function BrakeTestHardCode()
 {
-	let data = {};
-	data['action'] = 'GrabWebToCar';
-	data['carID'] = 1;
-
-	AjaxRequest('./webservice.php', 'POST', data, 'json', CarSimReq, Fail);
+	let angle = $("#hardCodeAngle").val();
+	let speed = $("#hardCodeSpeed").val();
+	FixedSendData(speed, angle);
+	testTimer = setInterval(Brake, $("#timerVal").val());
 }
+
+function Brake()
+{
+	FixedSendData(0, 0);
+	clearInterval(testTimer);
+}
+
+function FixedSendData(speed, angle)
+{	//Send Data
+	let data = {};
+    data['action'] = 'web_to_car_Data';
+    data['carID'] = $('#whichCarSel').val();              
+	data['intendedAngle'] = angle;
+	data['intendedSpeed'] = speed;
+	data['brakeStrength'] = $("#hardCodeBrakeStrength").val();
+	data['TC_Level'] = $("#hardCodeBrakeStrength").val();
+	data['ABS_Level'] = $("#hardCodeAbs").val();
+	
+            //Date.now() returns number of ms from January 1, 1970, parsed to keep track of 1 minute in ms
+    //For unsigned 16bit int (0 - 65,535), and as little wrapping as little as possible
+    //If mem space is required can easily be reduced further
+    data['timeStamp'] = Date.now() % 60000;     //returns number of ms from January 1, 1970, good for timeout comparison
+	//parsed to last 4 digits for data storage as its essentially acting as a timer
+
+	AjaxRequest('./webservice.php', 'POST', data, 'json', Useless, Fail)	
+}
+
+function Useless()
+{
+	console.log("Hardcoded command sent successfully");
+}
+
+function ReceiveData()
+{
+	let receiveCarData = {};
+	receiveCarData['fromGUI'] = "yeppers";
+	receiveCarData['carID'] = $carID;
+
+	AjaxRequest('./webservice.php', 'POST', receiveCarData, 'json', UpdateSelfData, Fail);
+
+	let fetchSentData = {};
+	fetchSentData['action'] = "GetCarDrives";
+	fetchSentData['fromGUI'] = "yeppers";
+	fetchSentData['carID'] = $carID;
+
+	AjaxRequest('./webservice.php', 'POST', fetchSentData, 'json', UpdateCarData, Fail);
+}
+
+function UpdateCarData(data, response)
+{
+	$("#FL_RPM").html(data['data'][0]['FL_RPM']);
+	$("#FR_RPM").html(data['data'][0]['FR_RPM']);
+	$("#BL_RPM").html(data['data'][0]['BL_RPM']);
+	$("#BR_RPM").html(data['data'][0]['BR_RPM']);
+
+	if (data['data'][0]['TC_ACTIVE'] == 1)
+		$("#TC_ACTIVE").html("TC Active");
+	
+	else
+		$("#TC_ACTIVE").html("TC Not Active");
+
+	if (data['data'][0]['ABS_ACTIVE'] == 1)
+		$("#ABS_ACTIVE").html("ABS Active");
+
+	else
+		$("#ABS_ACTIVE").html("ABS Not Active");
+
+	if (data['data'][0]['Burnout_In_Progress'] == 1)
+		$("#Burnout_Active").html("Wee spinny spinny right");
+
+	else if (data['data'][0]['Burnout_In_Progress'] == 2)
+		$("#Burnout_Active").html("Wee spinny spinny left");
+
+	else
+		$("#Burnout_Active").html("No Spinny :(");
+
+	if (data['data'][0]['Burnout_In_Progress'] === "1" || data['data'][0]['Burnout_In_Progress'] === "2" && restartSong)
+	{
+		// audio.volume = 1;
+		// burnoutAudio.play();
+		restartSong = false;
+
+		document.getElementById("roundAndRound").play();
+	}
+	else
+	{
+		restartSong = true;
+		document.getElementById("roundAndRound").pause();
+	}
+}
+
+function UpdateSelfData(data, response)
+{
+	$("#XYFeedBackTest").html(`Intended Angle: ${data['a']} || Intended Speed: ${data['s']}`);
+}
+
+// function FetchData()
+// {
+// 	let data = {};
+// 	data['action'] = 'GrabWebToCar';
+
+// 	AjaxRequest('./webservice.php', 'POST', data, 'json', CarSimReq, Fail);
+// }
 
 function sleep(ms){
 	return new Promise( resolver => setTimeout(resolver, ms));
