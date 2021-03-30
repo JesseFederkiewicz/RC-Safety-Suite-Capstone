@@ -1,4 +1,11 @@
 <?php
+/*
+ * File: db.php
+ * Authors: Jesse Federkiewicz & Timothy Hachey
+ * TLDR: Calls To get data from DB
+*/
+
+
 // mysqli Database utility file
 session_start();	//possibly need to remove because called in two places
 
@@ -10,6 +17,16 @@ mysqliConnect(); // Start Connection, initiates the connection assigning $myslqi
 
 // Attempt connection and populate mysqli connection object, used later.
 //  This will be executed once per page request, preparing possible connection object
+
+/////////////////////////////////////////////////////////
+// function mysqliConnect()
+// Attempt connection and populate mysqli 
+// connection object, used later.
+// This will be executed once per page request, 
+// preparing possible connection object
+//
+// Returns: none
+/////////////////////////////////////////////////////////
 function mysqliConnect() {
 
 	global $mysqli, $mysqli_response, $mysqli_status; // register the globals here for use.. odd but it works that way
@@ -27,7 +44,16 @@ function mysqliConnect() {
 	}
 }
 
-// Regular Query function, will expect a resultset to bind to result object
+/////////////////////////////////////////////////////////
+// function mysqliQuery($q)
+// Args: 
+//			$q : query
+//
+// Regular Query function, 
+// will expect a resultset to bind to result object
+//
+// Returns: result of query
+/////////////////////////////////////////////////////////
 function mysqliQuery($q)
 {
 	global $mysqli, $mysqli_response, $mysqli_status;// register the globals
@@ -48,6 +74,17 @@ function mysqliQuery($q)
 
 // NON-Query function
 //   will NOT expect a resultset to bind to result object, instead TRUE/FALSE
+
+/////////////////////////////////////////////////////////
+// function mysqliNonQuery($q)
+// Args: 
+//			$q : query
+//
+// NON-Query function
+// will NOT expect a resultset to bind to result object
+//
+// Returns: rows effected
+/////////////////////////////////////////////////////////
 function mysqliNonQuery($q)
 {
 	global $mysqli, $mysqli_response, $mysqli_status;	// register the globals

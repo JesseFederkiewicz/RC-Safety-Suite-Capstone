@@ -21,7 +21,7 @@
     <title>Past Drives</title>
     <script src="//ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script src="./js/ajax.js" type="text/javascript"></script>
-    <script src="./js/pastDrives12.js" type="text/javascript"></script>
+    <script src="./js/pastDrives.js" type="text/javascript"></script>
 </head>
 <body>
     <div id = "PastDrivesSite">

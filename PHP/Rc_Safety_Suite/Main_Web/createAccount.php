@@ -20,6 +20,7 @@
     <div class = hdr>
         <h1 class = 'font-effect-3d text-center'>Create Account</h1>
     </div>
+        <!-- Site Div -->
         <div id = "loginSite">
             <div id = addUsrLbl class = text-right>UserName : </div><input type = "text" name="user" placeholder="Username" id = addUsrInput>
             <div id = addPswLbl class = text-right>Password : </div><input type = "password" name="password" placeholder="Password" id = addPswInput>            
@@ -34,7 +35,7 @@
     </div>
 
     <div class = "text-center footer">
-    <br>&copy;&copy Copyright 2020 by Jesse Federkiewicz & Timothy Hachey<br><script>document.write('Last Modified: ' + document.lastModified)</script>
+    <br>&copy; Copyright 2020 by Jesse Federkiewicz & Timothy Hachey<br><script>document.write('Last Modified: ' + document.lastModified)</script>
     </div>
 </body>
 </html>

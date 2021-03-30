@@ -27,25 +27,35 @@
 </html>
 
 <?php
-function listFolderFiles($dir){
-    $ffs = scandir($dir);
 
-    unset($ffs[array_search('.', $ffs, true)]);
-    unset($ffs[array_search('..', $ffs, true)]);
+//////////////////////////////////////////////////////////////////////////////////////
+// function listFolderFiles($dir)
+// Args: 
+//			$dir            : directory
+//
+// Recursive call to find all obj's in webserver system
+//
+// Returns: none
+//////////////////////////////////////////////////////////////////////////////////////
+    function listFolderFiles($dir){
+        $ffs = scandir($dir);
 
-    // prevent empty ordered elements
-    if (count($ffs) < 1)
-        return;
+        unset($ffs[array_search('.', $ffs, true)]);
+        unset($ffs[array_search('..', $ffs, true)]);
 
-    echo '<ol>';
-    foreach($ffs as $ff){
-    {
-        echo "<li><a href=\"./{$dir}/{$ff}\">{$ff}</a>";
-        if(is_dir($dir.'/'.$ff)) listFolderFiles($dir.'/'.$ff);
-            echo '</li>';
+        // prevent empty ordered elements
+        if (count($ffs) < 1)
+            return;
+
+        echo '<ol>';
+        foreach($ffs as $ff){
+        {
+            echo "<li><a href=\"./{$dir}/{$ff}\">{$ff}</a>";
+            if(is_dir($dir.'/'.$ff)) listFolderFiles($dir.'/'.$ff);
+                echo '</li>';
+        }
+            
     }
-        
-}
-    echo '</ol>';
+        echo '</ol>';
 }
 ?>

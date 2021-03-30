@@ -11,24 +11,24 @@
     <script src="//cdn.rawgit.com/Mikhus/canvas-gauges/gh-pages/download/2.1.7/radial/gauge.min.js"></script>
 </head>
 <body>
+    <!-- Audio for doing burnouts -->
     <audio controls preload="auto" style="display:none" id = "roundAndRound">  
         <source id = "songUrl" src="https://coolstuffliveshere.com/Rc_Safety_Suite/Main_Web/images/bestSong.mp3?nocache=1" type="audio/mp3" loop=true http=true >  
     </audio>  
     <div class = hdr>
         <h1 class = 'font-effect-3d text-center' id = carControlBanner>Select a car to control</h1>
     </div>
+
+    <!-- Front car page -->
     <div id = chooseCar>
         <div id = selectCarNumber>
         </div>
 
         <div id = selectCarBtn>
-            <!-- <input type = "button" name = "selCarBtn" value = "Lets Control This thing!" id = selCarBtnID> -->
         </div>
 
         <div id = addCarBtnDIV>
         </div>
-
-
         <br>
         <div id = hardCodedTestingDiv>
             <label id = "hardCodeAngleLbl">Intended Angle : </label>
@@ -49,6 +49,7 @@
         </div>
     </div>
 
+    <!-- Car control page -->
     <div id = "carControl">
         <div id = "carStick" style="border: 0px solid red; width: 128px;">
             <img src="images/joystick-base.png" id = 'joyBase'/>
@@ -58,7 +59,6 @@
         </div>
         <hr>
         <div id = "carStatsBackFromCar">
-            <!-- Change ID -->
             <div id = "carControlBtnDiv">
                 <input id = "toIndexCarControl" type = "button" value="To Index"> 
                 <input id = "hardCodedTesting" type = "button" value="To Fixed Testing">
@@ -99,6 +99,7 @@
         </div>
 
         <!-- Credit to https://canvas-gauges.com/documentation/user-guide/ -->
+        <!-- Add Gauge -->
         <div id = "speedGaugeDiv">
             <canvas id = "speedGauge" data-type="radial-gauge"
                 data-width="400"

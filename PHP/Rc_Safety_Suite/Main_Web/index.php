@@ -27,6 +27,7 @@ if( !isset($_SESSION["user"])) // not authenticated, does exist
         <?php echo "User: {$_SESSION['user']}"; ?>
       </h1>
     </div>
+    <!-- Form Posts to login -->
     <form action="login.php" method="post" id = "indexSite">
         <div id = "tagSettings" class = text-right>
         <a href = "./settings.php?nocache=1" class = "text-center">Settings</a><br>

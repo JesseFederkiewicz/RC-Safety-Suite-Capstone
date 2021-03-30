@@ -1,17 +1,27 @@
 <?php
+
+/*
+ * File:    webservices.php
+ * Authors: Jesse Federkiewicz & Timothy Hachey
+ * TLDR:    Proctors connection between car, webservices, and db
+*/
+
 // // do requires
 // // ?? function/session stuff
 require_once "./inc/db.php";
 require_once "./functions.php";
 // // if we make it here.. connection was good
 
-$gblData = array();
-$status = "Failed Ajax Call";
+$gblData = array();                 // gbl data aarr
+$status = "Failed Ajax Call";       // init status message
 
-//////////////////////////////////////////////
-//  function Done()
-//  package up data
-//////////////////////////////////////////////
+/////////////////////////////////////////
+// function Done()
+//
+// package up data
+//
+// Returns: rows effected
+/////////////////////////////////////////
 function Done()
 {
     global $gblData, $status;
@@ -22,7 +32,8 @@ function Done()
     die();
 }
 
-//Not working data too large TODO?
+//TODO TODO TODO (basically only thing left TODO)
+// Not working data too large TODO?
 if (isset($_POST['action']) && $_POST['action'] == 'deleteDrive')
 {
     foreach ($_POST['driveData'] as $key => $value)
@@ -40,217 +51,245 @@ if (isset($_POST['action']) && $_POST['action'] == 'deleteDrive')
     die(); //in a hole
 }
 
+// if user wishes to delete all car data
 if (isset($_POST['action']) && $_POST['action'] == 'deleteCarDrives')
 {
+    // get and sanitize carID
     $carID = $mysqli->real_escape_string(strip_tags($_POST['carID']));
 
+    // send query
     $query = mysqliNonQuery("DELETE FROM car_to_web where carID like {$carID}");
 
+    // good query
     if ($query)
         $status = "Delete Car Drives: {$query->num_rows} rows effected";
 
+    // bad query
     else
         $status = "Delete Car Drives: Failed for car #{$carID} ";
 
     die(); //in a hole
 }
 
+// get all cars registered to user
 if (isset($_POST['action']) && $_POST['action'] == 'GetUserCars')
 {
+    // get and sanitize userID
     $userID = $mysqli->real_escape_string(strip_tags($_SESSION['userID']));
 
+    // sesnd query
     $query = mysqliQuery("SELECT carID from web_to_car where userID like '{$userID}'");
 
+    // good query
     if ($query)
         $status = "GetUserCars: {$query->num_rows} cars retreived";
     
+    // bad query
     else
     {
         $carID = $mysqli->real_escape_string(strip_tags($_POST['carID']));
         $status = "GetUserCars: {$carID} cars query failed";
     }
 
+    // make arr to push data into
     $dataArr = array();
 
+    // fill arr
     foreach ($query as $key => $value)
-    {
         array_push($dataArr, $value);
-        //error_log($value['timeEntry']);
-    }
-
+    
+    // data obj to send back
     $data = array();
     $data['data'] = $dataArr;
     $data['status'] = $status;
 
+    // send back data
     echo json_encode($data);
+
     die(); //in a hole
 }
 
+// get car drives for certain car
 if (isset($_POST['action']) && $_POST['action'] == 'GetCarDrives')
 {
+    // get and sanitize carID
     $carID = $mysqli->real_escape_string(strip_tags($_POST['carID']));
 
+    // init query
     $query = "";
 
+    // send query if NOT from GUI
     if (!isset($_POST['fromGUI'])) 
         $query = mysqliQuery("SELECT * from car_to_web where carID = '{$carID}'");
 
-    //Only grab latest entry
+    // send query if FROM GUI 
     else
     {
         $query = mysqliQuery("SELECT * from car_to_web where carID = {$carID} order by timeEntry desc LIMIT 1");
         error_log("I AM HERE");
     }
 
-    error_log($_POST['fromGUI']);
-       //$query = mysqliQuery("SELECT * from car_to_web where 'timeStamp' like (SELECT max('timeStamp') where carID like '{$carID}')");
-
-
+    // good query
     if ($query)
         $status = "GetUserCars: {$query->num_rows} entries retreived";
 
+    // bad query
     else
         $status = "GetUserCars: {$carID} cars query failed";
 
-
+    // arr to fill response data
     $dataArr = array();
 
+    // fill response data
     foreach ($query as $key => $value)
-    {
         array_push($dataArr, $value);
-    }
-
+    
+    // fill return obj
     $data = array();
     $data['data'] = $dataArr;
     $data['status'] = $status;
 
+    // send back data
     echo json_encode($data);
+
     die(); //in a hole
 }
 
-//Delete a car
+// Delete a car
 if (isset($_POST['action']) && $_POST['action'] == 'DeleteUser')
 {
-    global $status;
+    global $status; //global status
 
+    // get and sanitize userID
     $userID = $mysqli->real_escape_string(strip_tags($_POST['userID']));
 
+    // send query
     $query = mysqliNonQuery("DELETE FROM web_to_car where userID like {$userID}");
 
+    // if good
     if ($query)
     {
         $status = "DeleteCar: {$carID} deleted IN web to car DB";
 
-        //Insert into other DB as well
+        // delete from other DB as well
         $query2 = mysqliNonQuery("DELETE FROM car_to_web where userID like {$userID}");
 
+        // if good
         if ($query2)
         {
             $status = "DeleteCar: {$carID} deleted from web_to_car and car_to_web";
 
+            // delete from last DB
             $query3 = mysqliNonQuery("DELETE FROM users where userID like {$userID}");
 
+            // if good
             if ($query3)
                 $status = "DeleteCar: EVERYTHING DELETED FOR USER";
 
+            // if bad
             else
                 "Error deleting user";
 
         }
 
+        // if bad
         else
             $status = "DeleteCar: {$carID} inserted";
     }
     
+    // if bad
     else
         $status = "DeleteCar: failed";
 
+    // prepare response obj
     $data = array();
     $data['data'] = $query;
     $data['status'] = $status;
 
+    // send back data
     echo json_encode($data);
-    die();
+
+    die(); //in a hole
 }
 
-//Delete a car
+// delete a car
 if (isset($_POST['action']) && $_POST['action'] == 'deleteCar')
 {
-    global $status;
+    global $status; //global status msg
 
+    // get and sanitize carID
     $carID = $mysqli->real_escape_string(strip_tags($_POST['carID']));
     
+    // send query
     $query = mysqliNonQuery("DELETE FROM web_to_car where carID like {$carID}");
 
+    // if good
     if ($query)
     {
         $status = "DeleteCar: {$carID} deleted IN web to car DB";
 
-        //Insert into other DB as well
+        // delete from other DB as well
         $query2 = mysqliNonQuery("DELETE FROM car_to_web where carID like {$carID}");
 
+        // if good
         if ($query2)
             $status = "DeleteCar: {$carID} deleted from web_to_car and car_to_web";
 
+        // if bad
         else
             $status = "DeleteCar: {$carID} inserted";
     }
-    
+    // if bad
     else
         $status = "DeleteCar: failed";
 
+    // prepare response obj
     $data = array();
     $data['data'] = $query;
     $data['status'] = $status;
 
+    // send response data
     echo json_encode($data);
-    die();
+
+    die(); //in a hole
 }
 
-//Add new car
+// add new car
 if (isset($_POST['action']) && $_POST['action'] == 'addNewCar')
 {
-    global $status;
+    global $status;     // global status msg
 
-    //Change this once login is required to car control page
-
+    // get and sanitize carID and userID
     $carID = $mysqli->real_escape_string(strip_tags($_POST['carID']));
     $userID = $mysqli->real_escape_string(strip_tags($_SESSION['userID']));
 
+    // send query
     $query = mysqliNonQuery("INSERT INTO web_to_car (carID, userID, intendedAngle, intendedSpeed, timeStamp)
                            VALUES ({$carID}, {$userID}, 0, 0, 1)");
 
+    // if good
     if ($query)
-    {
         $status = "InsertCar: {$carID} inserted in web to car";
-
-        // //Insert into other DB as well      //TODO
-        // $query2 = mysqliNonQuery("INSERT INTO car_to_web (carID, userID, FL_RPM, BL_RPM, FR_RPM, BR_RPM, Ground_Speed_Count, TC_ACTIVE, ABS_ACTIVE, BURNOUT_IN_PROGRESS)
-        // VALUES ({$carID}, {$userID}, 0, 0, 0, 0, 0, 0, 0, 0)");
-
-        // if ($query2)
-        //     $status = "InsertCar: {$carID} inserted to both tables";
-
-        // else
-        //     $status = "InsertCar: {$carID} inserted to both tables";
-        
-        
-    }
     
+    // if bad
     else
         $status = "InsertCar: failed";
 
+    // response obj
     $data = array();
     $data['data'] = $query;
     $data['status'] = $status;
 
+    // send back data
     echo json_encode($data);
-    die();
+
+    die(); // in a hole
 }
 
-//Send data into db
+// send data into db
 if (isset($_POST['action']) && $_POST['action'] == 'web_to_car_Data')
 {
+    // get and sanitize inputs
     $intendedAngle = $mysqli->real_escape_string(strip_tags($_POST['intendedAngle']));
     $intendedSpeed = $mysqli->real_escape_string(strip_tags($_POST['intendedSpeed']));
     $TC_Level = $mysqli->real_escape_string(strip_tags($_POST['TC_Level']));
@@ -274,32 +313,28 @@ if (isset($_POST['action']) && $_POST['action'] == 'web_to_car_Data')
 }
 
 
-//Dont execute if request comes from webserver
+// dont execute if request comes from webserver
 else if (isset($_POST['carID']))
 {
-    global $status;
+    global $status; // global status msg
 
-    //Get data from database
+    // get data from database
     $carID = $mysqli->real_escape_string(strip_tags($_POST['carID']));
 
-    //$status = "Failed Ajax Call '{$carID}' AFTER";
-
+    // send query
     $carRequest = mysqliQuery("SELECT * from web_to_car where carID like '{$carID}'");
 
 
-    //Get row
+    // get row
     $row = $carRequest->fetch_assoc();
 
-    //Check if query was good
+    // check if query was good
     if ($row)
     {     
-        //Send status back to car if successful
+        // send status back to car if successful
         $status = "Hello Car {$row['carID']} from webservice.php!";
 
-        // $status = "Hello from successful query"; //TODO
-        //Throw data to log
-        //error_log("Car ID: {$row['carID']} X: {$row['xCoord']} Y: {$row['yCoord']} Stamp: {$row['timeStamp']}");
-
+        // package up short response for car -> shorter the better as serial is expensive, hence short names and custom response
         $shortResp = array();
         $shortResp['a'] = $row['intendedAngle'];
         $shortResp['s'] = $row['intendedSpeed'];
@@ -308,15 +343,14 @@ else if (isset($_POST['carID']))
         $shortResp['abs'] = $row['ABS_Level'];
         $shortResp['bs'] = $row['Brake_Strength'];
 
-        //Json encode data back to car
+        // json encode data back to car
         echo json_encode($shortResp);
     }
 
-    //Bad query
+    // bad query
     else
     {
-        // error_log("POST Query Failed FROM Car {$row['carID']}");
-        // $status = "POST Query Failed FROM Car {$row['carID']}";
+        $status = "POST Query Failed FROM Car {$row['carID']}";
     }
 
     //Send data if request is from car 
@@ -333,6 +367,7 @@ else if (isset($_POST['carID']))
         $ABS_ACTIVE = $mysqli->real_escape_string(strip_tags($_POST['ABS']));
         $Burnout_In_Progress = $mysqli->real_escape_string(strip_tags($_POST['BIP']));
 
+        // send query
         $allUserData = mysqliNonQuery("INSERT car_to_web 
                                         set carID = '{$carID}',
                                             userID = '{$userID}',
@@ -344,55 +379,56 @@ else if (isset($_POST['carID']))
                                             TC_ACTIVE = '{$TC_ACTIVE}',
                                             ABS_ACTIVE = '{$ABS_ACTIVE}',
                                             Burnout_In_Progress = '{$Burnout_In_Progress}'");
-        //error_log($allUserData);
     }
     die(); //in a hole
 
 }
 
 
-
+// add a user
 if (isset($_POST['action']) && $_POST['action'] == 'AddUser')
 {
-    global $status;
+    global $status;     // global status
 
-    //Lowercase the usn
+    // lowercase the usn
     $userName = strtolower($mysqli->real_escape_string($_POST['user']));
 
-    //Get real password and hash it (sql protection)
+    // get real password and hash it (sql protection)
     $password = password_hash($mysqli->real_escape_string($_POST['pass']), PASSWORD_DEFAULT);
     
-    //Insert query and row response
+    // insert query and row response
     $query = mysqliNonQuery("INSERT INTO users (username, password)
                 VALUES (\"$userName\",\"$password\")");
 
+    // update status
     $status = "$query : records inserted";
 
-    //Pack up data
+    // pack up data
     Done();
 }
 
+// get users from db (GET)
 if (isset($_GET['action']) && $_GET['action'] == 'GetUsers')
 {
-    //Get all users
+    // get all users
     $allUserData = mysqliQuery("select * from users");
 
-    //Check if query was good
+    // check if query was good
     if ($allUserData)
     {
-        //Foreach through all users and add to gblArr
+        // foreach through all users and add to gblArr
         foreach ($allUserData as $key => $value)
             array_push($gblData, $value);
         
 
-        //Get rows in table
+        // get rows in table
         $status = $allUserData->num_rows;
 
-        //Pack up data
+        // pack up data
         Done();
     }
 
-    //Bad query
+    // bad query
     else
     {
         error_log("GET Query Failed");
@@ -400,25 +436,31 @@ if (isset($_GET['action']) && $_GET['action'] == 'GetUsers')
     }
 }
 
-//Get Car Count
+// get Car Count
 if (isset($_POST['action']) && $_POST['action'] == 'GetCarCount')
 {
-    global $status;
+    global $status;     // global status obj
     
+    // send query
     $query = mysqliNonQuery("SELECT carID from web_to_car");
 
+    // if good
     if ($query)
         $status = "GetCarcount: $query : records fetched for car count";
     
+    // if bad
     else
         $status = "GetCarCount: failed";
 
+    // prep response obj
     $data = array();
     $data['data'] = $query;
     $data['status'] = $status;
 
+    // send response
     echo json_encode($data);
-    die();
+
+    die(); // in a hole
 }
 
 

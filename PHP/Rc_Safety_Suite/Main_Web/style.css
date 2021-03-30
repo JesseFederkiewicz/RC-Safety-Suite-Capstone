@@ -1,3 +1,10 @@
+
+/*
+ * File:    style.css
+ * Authors: Jesse Federkiewicz & Timothy Hachey
+ * TLDR:    Yes, my style is impeccable, Stevin.
+*/
+
 @import url(//fonts.googleapis.com/css?family=Comfortaa|Raleway|Special+Elite&effect=3d);
 body, input { font-family: "Special Elite", sans-serif; font-size: x-large; }
 h1 { font-family: Comfortaa, sans-serif; font-size: 3.5em; }

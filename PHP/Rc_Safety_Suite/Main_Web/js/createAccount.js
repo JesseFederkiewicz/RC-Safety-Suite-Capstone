@@ -1,3 +1,9 @@
+/*
+ * File:    createAccount.js
+ * Authors: Jesse Federkiewicz & Timothy Hachey
+ * TLDR:    Allows user to create account
+*/
+
 $(document).ready( () => {
 
     //On user creation click
@@ -15,12 +21,17 @@ $(document).ready( () => {
     });
 
 });
-//////////////////////////////////////////////
-//  function HandleStatus (data, response)
-//  Args:
-//          data        : ajax response data
-//          response    : ajax response
-//////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////
+// function HandleStatus(data, response)
+// Args: 
+//			data            : ajax response data
+//          response        : response message
+//
+// Updates status of operation
+//
+// Returns: none
+///////////////////////////////////////////////////////////
 function HandleStatus(data, response)
 {
     //Prompt status output
@@ -39,12 +50,17 @@ function HandleStatus(data, response)
     }
 }
 
-//////////////////////////////////////////////
-//  function Fail (errorMessage)
-//  Args:
-//          errormessage : ajax response data
-//////////////////////////////////////////////
-function Fail(errorMessage)
+//////////////////////////////////////////////////////////
+// function Fail(errorData, message)
+// Args: 
+//			errorData       : ajax response data
+//          response        : response message
+//
+// Updates status of ajax request to display to user
+//
+// Returns: none
+///////////////////////////////////////////////////////////
+function Fail(errorData, response)
 {
-    console.log(errorMessage);
+    console.log(response);
 }
