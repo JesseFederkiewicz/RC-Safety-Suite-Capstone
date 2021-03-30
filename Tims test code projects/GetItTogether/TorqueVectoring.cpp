@@ -293,7 +293,7 @@ bool SingleWheelBrake(WheelAndRPMs wheel, float* wheelDuty, Movement* lastWheelD
 	const int jiggleLimit = 2; // if the wheels switch directions this many times, the vehicle is stopped
 	const int stopLimit = 2;
 	const int rpmReset = 70;   // 70 OK? //20 //170 //lower number causes jittering, higher number causes no brake past low rpms
-
+ 
 	//Higher is more brake strength
 	const int spinCutterStrength = 4;
 	const int spinRpm = 5;
