@@ -14,6 +14,7 @@ $carID = null;				// selected car to control
 let ajaxIntervalID;			// interval to send data to car
 let pullDataIntervalID;		// interval to pull data from webserver (statics and widgets)
 let testTimer;				// timer ID for hardcoded verification test timer
+let carToAddID;				// carID to add
 
 class JoystickController
 {
@@ -190,6 +191,13 @@ $(document).ready ( () => {
 	joyStick = new JoystickController("joyStick", 64, 8);	
 	//joyStick = new JoystickController("joyStick", document.querySelector("#joyBase").clientWidth / 2, 8);
 
+	// hide buttons
+	$('#selCarBtn').hide();
+	$('#delCarBtn').hide();
+	$('#hardcodeGoBtn').hide();
+	$('#hardcodeStopBtn').hide();
+	$('#timerHardCode').hide();
+
 	// hide car control page
 	$('#carControl').hide();
 
@@ -207,15 +215,21 @@ $(document).ready ( () => {
 	$('#toIndexCarControl').click( () =>{
         window.location.replace("./index.php");
     });
+	$("#toIndexBtnCarControl").click( () =>{
+		window.location.replace("./index.php");
+	});
 
 	// go back to main page and clear timer, show hardcode testing controls (mostly used for verification testing)
 	$('#hardCodedTesting').click( () =>{
 		$('#chooseCar').show();
 		$('#carControl').hide();
 
+		$('#carControlBanner').html("Select a car to control");
+
 		clearInterval(ajaxIntervalID);
 		clearInterval(pullDataIntervalID);
     });
+
 
 	// hardcode verification test click, send data to db and therefore car
 	$('#hardcodeGoBtn').click ( () => {
@@ -309,7 +323,34 @@ function GetCarCount()
 {
 	let data = {};
 	data['action'] = "GetCarCount";
-	AjaxRequest('./webservice.php', 'POST', data, 'json', SetUpItems, SetUpItems)
+	AjaxRequest('./webservice.php', 'POST', data, 'json', SetUpItems, Fail)
+}
+
+function RefreshCarCount()
+{
+	let data = {};
+	data['action'] = "GetCarCount";
+	AjaxRequest('./webservice.php', 'POST', data, 'json', RefreshItems, Fail)
+}
+
+function RefreshItems (data, response)
+{
+	// empty select
+	$("#carSelect").html("");
+
+	// hide btns while we check new status
+	$('#selCarBtn').hide();
+	$('#delCarBtn').hide();
+	$('#hardcodeGoBtn').hide();
+	$('#hardcodeStopBtn').hide();
+	$('#timerHardCode').hide();
+
+	// create select and assign properties
+	let select = document.createElement('select');
+	$(select).prop({"name" : "carSelect", "id" : "whichCarSel"});
+
+	// get what cars the user owns
+	FillUserCars();
 }
 
 ///////////////////////////////////////////////////////////
@@ -366,7 +407,7 @@ function FillCarsSelect(data, response)
             isFirst = false;
         }
 
-		// appent option to select
+		// append option to select
         $(select).append(option);
     }); 
 }
@@ -397,19 +438,14 @@ function SetUpItems (data, response)
 	let select = document.createElement('select');
 	$(select).prop({"name" : "carSelect", "id" : "whichCarSel"});
 
-	// create options for select
-	for ($i = 1; $i <= data['data']; $i++)
-	{
-		let option = document.createElement('option');
-		$(option).prop({"id" : "option" + $i, "value" : $i, "innerHTML" : "Car " + $i});
-		$(select).append(option);
-	}
-
-	// append the car number to the select
+	// // append the car number to the select
 	$(selCar).append(select);
 
+	// get what cars the user owns
+	FillUserCars();
+
 	// set up button
-	let selBtnDiv = $('#selectCarBtn');
+	let selBtnDiv = $('#selectCarBtnDIV');
 	let selCarBtn = document.createElement("input");
 	$(selCarBtn).prop({"type" : "button", "id" : "selCarBtn", "value" : "Control Car #" + $(select).val()});
 	$(selBtnDiv).append(selCarBtn);
@@ -418,13 +454,13 @@ function SetUpItems (data, response)
 	// add option to add another car
 	let addCarBtnDiv = $('#addCarBtnDIV');
 	let addCarBtn = document.createElement("input");
-	$(addCarBtn).prop({"type" : "button", "id" : "addCarBtn", "value" : "Add Car #" + (data['data'] + 1)});
+	$(addCarBtn).prop({"type" : "button", "id" : "addCarBtn", "value" : "Add Car #X"});
 	$(addCarBtnDiv).append(addCarBtn);
 
 	// option to delete a car
 	let delCarBtnDiv = $('#addCarBtnDIV');			
 	let delCarBtn = document.createElement("input");
-	$(delCarBtn).prop({"type" : "button", "id" : "addCarBtn", "value" : "Delete Car #" + $(select).val()});
+	$(delCarBtn).prop({"type" : "button", "id" : "delCarBtn", "value" : "Delete Car #" + $(select).val()});
 	$(delCarBtnDiv).append(delCarBtn);
 
 	// add select changed event handler to update button
@@ -434,17 +470,16 @@ function SetUpItems (data, response)
 		$carID = $(select).val()
 	});
 
-	// assign global carID to current selected val
-	$carID = $(select).val()
-
-
 	// add car Btn event handler, adds next availiable car to DB
 	$(addCarBtn).click ( () => {
 		let sendData = {};
 		sendData['action'] = "addNewCar";
-		sendData['carID'] = data['data'] + 1;
+		sendData['carID'] = carToAddID;
 
-		AjaxRequest('./webservice.php', 'POST', sendData, 'json', GetCarCount, Fail)
+		AjaxRequest('./webservice.php', 'POST', sendData, 'json', RefreshCarCount, Fail)
+
+		// see which spot we can add in
+		GetOpenCarSlot();
 	});
 
 	// delete car Btn event handler, deletes car in select
@@ -453,7 +488,10 @@ function SetUpItems (data, response)
 		sendData['action'] = "deleteCar";
 		sendData['carID'] = $carID;
 
-		AjaxRequest('./webservice.php', 'POST', sendData, 'json', GetCarCount, Fail)
+		AjaxRequest('./webservice.php', 'POST', sendData, 'json', RefreshCarCount, Fail)
+
+		// see which spot we can add in
+		GetOpenCarSlot();
 	});
 
 	// select car btn click event handler, opens car control page
@@ -471,6 +509,10 @@ function SetUpItems (data, response)
 		pullDataIntervalID = setInterval(ReceiveData, interval * 3);
 		loop();	
 	});
+
+	
+	//Update which slot is open for add
+	GetOpenCarSlot();
 }
 
 //////////////////////////////////////////////////////////
@@ -706,6 +748,10 @@ function ReceiveData()
 ///////////////////////////////////////////////////////////
 function UpdateCarData(data, response)
 {
+	// account for if car has never been driven
+	if (data['data'].length == 0)
+		return;
+
 	// grab rpm data of most recent pull
 	$("#FL_RPM").html(data['data'][0]['FL_RPM']);
 	$("#FR_RPM").html(data['data'][0]['FR_RPM']);
@@ -758,4 +804,162 @@ function UpdateCarData(data, response)
 function UpdateSelfData(data, response)
 {
 	$("#XYFeedBackTest").html(`Intended Angle: ${data['a']} || Intended Speed: ${data['s']}`);
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////
+// function FillUserCars()
+//
+// Fill all cars the user owns
+//
+// Returns: none
+//////////////////////////////////////////////////////////////////////////////////////
+function FillUserCars()
+{
+    let data = {};
+    data['action'] = 'GetUserCars';
+
+    //Send ajax request
+    AjaxRequest('./webservice.php', 'POST', data, 'json', FillCarsSelect, Fail)
+}
+
+//////////////////////////////////////////////////////////
+// function FillCarsSelect(data, response)
+// Args: 
+//			data            : ajax response data
+//          response        : response message
+//
+// Updates car select
+//
+// Returns: none
+///////////////////////////////////////////////////////////
+function FillCarsSelect(data, response)
+{
+    // get select
+    let select = $('#whichCarSel');
+    (select).html("");
+
+    // if first
+    let isFirst = true;
+
+    // iterate through cars
+    data['data'].forEach(e => {
+
+        // create option
+        let option = document.createElement("option");
+
+        // update properties of option
+        $(option).prop({"value" : e['carID'], "innerHTML" : "Car " + e['carID']})
+
+        // select it if first
+        if (isFirst)
+        {
+            $(option).prop("selected", true);
+            isFirst = false;
+        }
+
+        // add to table
+        $(select).append(option);
+    });
+
+    // if no cars found
+    if (data['status'] == "GetUserCars: 0 cars retreived")
+    {
+        // create option
+        let option = document.createElement("option");
+
+        // assign option props
+        $(option).prop({"value" : "", "innerHTML" : "No Cars Found"})
+
+        // select it if its first
+        if (isFirst)
+        {
+            $(option).prop("selected", true);
+            isFirst = false;
+        }
+
+        // appent option to select
+        $(select).append(option);
+
+		// hide buttons
+		$('#selCarBtn').hide();
+		$('#delCarBtn').hide();
+		$('#hardcodeGoBtn').hide();
+		$('#hardcodeStopBtn').hide();
+		$('#timerHardCode').hide();
+    }
+
+	// show buttons if there are cars registered
+	else
+	{
+		$('#selCarBtn').show();
+		$('#delCarBtn').show();
+		$('#hardcodeGoBtn').show();
+		$('#hardcodeStopBtn').show();
+		$('#timerHardCode').show();
+	}
+
+	// update btn text
+	$("#selCarBtn").val("Control Car #" + $(select).val())
+	$("#delCarBtn").val("Delete Car #" + $(select).val())
+
+	// assign global carID to current selected val
+	$carID = $(select).val()
+}
+
+//////////////////////////////////////////////////////////
+// function FillCarsSelect(data, response)
+//
+// Ask DB for all cars back
+//
+// Returns: none
+///////////////////////////////////////////////////////////
+function GetOpenCarSlot()
+{
+	let data = {};
+	data['action'] = "GetCarCount";
+	AjaxRequest('./webservice.php', 'POST', data, 'json', ReceivedSlotData, Fail)
+}
+
+//////////////////////////////////////////////////////////
+// function FillCarsSelect(data, response)
+// Args: 
+//			data            : ajax response data
+//          response        : response message
+//
+// Updates which slot you can add a car (Lowest num)
+//
+// Returns: none
+///////////////////////////////////////////////////////////
+function ReceivedSlotData(data, response)
+{
+	// check all availiable numbers
+	for ($i = 1; $i < Infinity; $i++)
+	{
+		// init bool
+		isOpen = true;
+
+		// iterate through current cars to check if current one is open
+		for ($x = 0; $x < data["data"].length; $x++)
+		{
+			// if not open
+			if (data["data"][$x]["carID"] == $i)
+				isOpen = false;
+		}
+
+		// if open assign and get out
+		if (isOpen)
+		{
+			$("#addCarBtn").val("Add Car #" + $i)
+			carToAddID = $i;
+			return;
+		}
+
+		// only allow 1M cars in the db... sorry china
+		else if ($i > 1000000)
+		{
+			$("#addCarBtn").val("Something Is Really Wrong Or This Website is really popular (only 1M cars allowed!)")
+			return;
+		}
+	}
 }

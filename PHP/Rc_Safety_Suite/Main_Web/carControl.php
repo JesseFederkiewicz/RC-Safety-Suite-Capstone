@@ -1,3 +1,15 @@
+<?php
+    require_once "functions.php"; // add start_session and include fnc Validate()
+
+    // Redirect if not authenticated
+    if( !isset($_SESSION["user"])) // not authenticated, does exist
+    {
+        // not logged in, turf him to login.php
+        header("location:login.php");// send user to login.php
+        die(); // in a hole
+    }
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -24,11 +36,16 @@
         <div id = selectCarNumber>
         </div>
 
-        <div id = selectCarBtn>
+        <div id = selectCarBtnDIV>
         </div>
 
         <div id = addCarBtnDIV>
         </div>
+
+        <div id = "toIndexDIV">
+            <input type="button" id="toIndexBtnCarControl" value="To Index">
+        </div>
+        
         <br>
         <div id = hardCodedTestingDiv>
             <label id = "hardCodeAngleLbl">Intended Angle : </label>

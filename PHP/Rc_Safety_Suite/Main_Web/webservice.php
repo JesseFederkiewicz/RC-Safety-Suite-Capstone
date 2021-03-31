@@ -32,21 +32,24 @@ function Done()
     die();
 }
 
-//TODO TODO TODO (basically only thing left TODO)
-// Not working data too large TODO?
+// if user wants to delete just one drive
 if (isset($_POST['action']) && $_POST['action'] == 'deleteDrive')
 {
-    foreach ($_POST['driveData'] as $key => $value)
-    {
-        $query = mysqliNonQuery("DELETE FROM car_to_web where timeEntry like {$value["timeStamp"]}");
-    }
-    
+    // santitize data
+    $firstEntry = $mysqli->real_escape_string(strip_tags($_POST['startDriveTime']));
+    $lastEntry = $mysqli->real_escape_string(strip_tags($_POST['endDriveTime']));
 
+    // send query
+    $query = mysqliNonQuery("DELETE FROM car_to_web where timeEntry between '{$firstEntry}' and '{$lastEntry}'");
+    
     if ($query)
         $status = "Delete Car Drive: Completed";
 
     else
         $status = "Delete Car Drive: Failed for selected drive ";
+
+
+    echo json_encode($status);
 
     die(); //in a hole
 }
@@ -58,7 +61,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'deleteCarDrives')
     $carID = $mysqli->real_escape_string(strip_tags($_POST['carID']));
 
     // send query
-    $query = mysqliNonQuery("DELETE FROM car_to_web where carID like {$carID}");
+    $query = mysqliNonQuery("DELETE FROM car_to_web where carID = {$carID}");
 
     // good query
     if ($query)
@@ -67,6 +70,8 @@ if (isset($_POST['action']) && $_POST['action'] == 'deleteCarDrives')
     // bad query
     else
         $status = "Delete Car Drives: Failed for car #{$carID} ";
+
+    echo json_encode($status);
 
     die(); //in a hole
 }
@@ -77,7 +82,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'GetUserCars')
     // get and sanitize userID
     $userID = $mysqli->real_escape_string(strip_tags($_SESSION['userID']));
 
-    // sesnd query
+    // send query
     $query = mysqliQuery("SELECT carID from web_to_car where userID like '{$userID}'");
 
     // good query
@@ -126,16 +131,15 @@ if (isset($_POST['action']) && $_POST['action'] == 'GetCarDrives')
     else
     {
         $query = mysqliQuery("SELECT * from car_to_web where carID = {$carID} order by timeEntry desc LIMIT 1");
-        error_log("I AM HERE");
     }
 
     // good query
     if ($query)
-        $status = "GetUserCars: {$query->num_rows} entries retreived";
+        $status = "GetCarDrives: {$query->num_rows} entries retreived";
 
     // bad query
     else
-        $status = "GetUserCars: {$carID} cars query failed";
+        $status = "GetCarDrives: {$carID} cars query failed";
 
     // arr to fill response data
     $dataArr = array();
@@ -431,7 +435,6 @@ if (isset($_GET['action']) && $_GET['action'] == 'GetUsers')
     // bad query
     else
     {
-        error_log("GET Query Failed");
         $status = "GET Query Failed";
     }
 }
@@ -442,19 +445,29 @@ if (isset($_POST['action']) && $_POST['action'] == 'GetCarCount')
     global $status;     // global status obj
     
     // send query
-    $query = mysqliNonQuery("SELECT carID from web_to_car");
+    $query = mysqliQuery("SELECT carID from web_to_car");               //TODO non query works
 
     // if good
     if ($query)
-        $status = "GetCarcount: $query : records fetched for car count";
+        $status = "GetCarCount: $query->num_rows : records fetched for car count";
     
     // if bad
     else
         $status = "GetCarCount: failed";
 
+    // make arr to push data into
+    $dataArr = array();
+
+    // fill arr
+    foreach ($query as $key => $value)
+    {
+        array_push($dataArr, $value);
+        error_log($value);
+    }
+
     // prep response obj
     $data = array();
-    $data['data'] = $query;
+    $data['data'] = $dataArr;
     $data['status'] = $status;
 
     // send response

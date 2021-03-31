@@ -45,7 +45,8 @@ $(document).ready( () => {
             {
                 let data = {};
                 data['action'] = 'deleteDrive';
-                data['driveData'] = e;
+                data['startDriveTime'] = e[0]["timeEntry"];
+                data['endDriveTime'] = e[e.length - 1]["timeEntry"];
                             
                 //Send ajax request
                 AjaxRequest('./webservice.php', 'POST', data, 'json', HandleStatus, Fail)
@@ -60,7 +61,13 @@ $(document).ready( () => {
 
     // update drives for a specific car
     $('#yourCarNum').change( () => {
-        FillCarDrives($('#yourCarNum').val());
+        FillCarDrives($('#yourCarNum').val())
+        $('#deleteCarData').val(`Delete Car #${('#yourCarNum').val()} Data`)
+    });
+
+    // update drives num
+    $('#yourDriveDate').change( () => {
+        $('#deleteCarDrive').val(`Delete Drive #${$('#yourDriveDate').prop('selectedIndex') + 1} Data`)
     });
 });
 
@@ -160,7 +167,7 @@ function FillUserCars()
 }
 
 //////////////////////////////////////////////////////////
-// function HandleStatus(data, response)
+// function FillCarsSelect(data, response)
 // Args: 
 //			data            : ajax response data
 //          response        : response message
@@ -218,13 +225,15 @@ function FillCarsSelect(data, response)
         $(select).append(option);
     }
 
+    // update which car to delete text
+    $('#deleteCarData').val(`Delete Car #${$('#yourCarNum').val()} Data`)
 
     // fill the drives for selected car
     FillCarDrives($(select).val());       
 }
 
 //////////////////////////////////////////////////////////
-// function HandleStatus(data, response)
+// function FillCarDrives(carID)
 // Args: 
 //			carID           : what car is selected
 //
@@ -261,6 +270,33 @@ function FillCarDrivesSelect(data, response)
     // grab select
     let select = $('#yourDriveDate');
     (select).html("");
+
+    // check if there are drives
+    if (data['data'].length == 0)
+    {
+        // create option
+        let option = document.createElement("option");
+
+        // add option properties
+        $(option).prop({"value" : "", "innerHTML" : "No Entries for the vehicle", "selected" : true})
+      
+        // append option to select
+        $(select).append(option);
+
+        // hide buttons
+        $("#loadDriveBtn").hide();
+        $("#deleteCarData").hide();
+        $("#deleteCarDrive").hide();
+
+        // dynamically resize logout
+        $("#loginFormPastDrives").css("grid-column", "1/3");
+
+        return;
+    }
+
+
+    // refresh bins
+    _carDriveBins = [];
 
     // set to first
     let isFirst = true;
@@ -345,6 +381,9 @@ function FillCarDrivesSelect(data, response)
         // appent option to select
         $(select).append(option);
     });
+
+    // update delete drive text
+    $('#deleteCarDrive').val(`Delete Drive #${$('#yourDriveDate').prop('selectedIndex') + 1} Data`)
 }
 
 //////////////////////////////////////////////////////////
@@ -360,9 +399,6 @@ function FillCarDrivesSelect(data, response)
 function Fail(errorData, response)
 {
     console.log(response);
-
-    //Update selects
-    FillUserCars();
 }
 
 //////////////////////////////////////////////////////////

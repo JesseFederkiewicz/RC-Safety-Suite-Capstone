@@ -33,7 +33,7 @@
             <div id = "selectCarAndDrive">
                 <select id = "yourCarNum"> </select>
                 <select id = "yourDriveDate"> </select>
-                <form action="login.php" method="post">
+                <form action="login.php" method="post" id="loginFormPastDrives">
                     <input type="submit" name="submit" value="Logout" id = pastDriveLogoutBtn>
                 </form>
                 <input id = "loadDriveBtn" type = "button" value="Load Drive">

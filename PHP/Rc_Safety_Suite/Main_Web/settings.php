@@ -8,6 +8,13 @@
         die(); // in a hole
     }
 
+    else if ($_SESSION["user"] != "admin")
+    {
+        // not logged in, turf him to login.php
+        header("location:index.php");// send user to login.php
+        die(); // in a hole
+    }
+
     //logout processing
     if (isset($_POST['submit']) && $_POST['submit'] == 'logout') 
     {
