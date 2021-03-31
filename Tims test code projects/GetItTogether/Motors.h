@@ -1,4 +1,9 @@
-// Motors.h
+// 
+// File: Motors.h
+// Authors: Tim Hachey/Jesse Federkiewicz
+// Description: contains defines for functions related to motor inits and control 
+//				and some structs/enums used in code
+// 
 
 #ifndef _MOTORS_h
 #define _MOTORS_h

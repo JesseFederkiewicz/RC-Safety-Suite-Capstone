@@ -1,16 +1,19 @@
 // 
 // File: Motors.cpp
 // Authors: Tim Hachey/Jesse Federkiewicz
+// Description: contains functions for initializing the motors
+//				and setting duty cycles and directions for each motor
 // 
 
 #include "Motors.h"
 
-// config structs
+// config structs, used for inits and setting duties
 PWM_Settings FL_PWM;
 PWM_Settings FR_PWM;
 PWM_Settings BL_PWM;
 PWM_Settings BR_PWM;
 
+// gpio number of the 2 directional control pins, used for inits and setting directions
 gpio_num_t rightDirControlPin;
 gpio_num_t leftDirControlPin;
 
@@ -35,7 +38,6 @@ void InitMotors()
 	BL_PWM.timer = MCPWM_TIMER_0; // Back Left using unit 1 timer 0
 	BL_PWM.opOut = MCPWM_OPR_A;   // Back Left on operator 0 output A
 	BL_PWM.signal = MCPWM0A;      // needed for gpio_init
-	//BL_PWM.pin = 17;		      // pwm for Back Left on pin 17
 	BL_PWM.pin = 12;		      // pwm for Back Left on pin 12
 
 	// motor four configs
@@ -82,10 +84,11 @@ void InitMotors()
 	leftDirConfig.pull_down_en = GPIO_PULLDOWN_ENABLE;
 	leftDirConfig.pull_up_en = GPIO_PULLUP_ENABLE;
 
+	// init pins
 	gpio_config(&rightDirConfig);
 	gpio_config(&leftDirConfig);
 
-	// set direction Forward for now
+	// set direction Forward on start
 	SetMotorDirections(Forward, Forward);
 }
 
