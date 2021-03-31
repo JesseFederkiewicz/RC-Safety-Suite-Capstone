@@ -1,4 +1,8 @@
-// Main.h
+// 
+// File: Main.h
+// Authors: Tim Hachey, Jesse Federkiewicz
+// Decription: define for main program and includes for other /h files
+// 
 
 #ifndef _MAIN_h
 #define _MAIN_h
