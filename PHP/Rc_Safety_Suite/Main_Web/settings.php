@@ -1,16 +1,28 @@
 <?php
     require_once "functions.php";
 
+    // if there is no user logged in
     if( !isset($_SESSION["user"])) // not authenticated, does exist
     {
+
         // not logged in, turf him to login.php
         header("location:login.php");// send user to login.php
         die(); // in a hole
     }
 
+    // if user isnt aloud here
     else if ($_SESSION["user"] != "admin")
     {
-        // not logged in, turf him to login.php
+        // must be admin, show them a prompt, then turf them
+        echo '<script>var r = confirm("You must be admin to access this page!")
+        if (r == true) {
+            window.location.replace("./index.php");;
+          } else {
+            window.location.replace("./index.php");;
+          }       
+        </script>';
+
+        // not logged in, turf him to index.php
         header("location:index.php");// send user to login.php
         die(); // in a hole
     }

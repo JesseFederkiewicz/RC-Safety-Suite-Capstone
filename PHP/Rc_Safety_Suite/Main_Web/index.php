@@ -30,13 +30,13 @@ if( !isset($_SESSION["user"])) // not authenticated, does exist
     <!-- Form Posts to login -->
     <form action="login.php" method="post" id = "indexSite">
         <div id = "tagSettings" class = text-right>
-        <a href = "./settings.php?nocache=1" class = "text-center">Admin Settings</a><br>
+        <a href = "./settings.php" class = "text-center">Admin Settings</a><br>
         <?php
           echo "Tag {$_SESSION['user']}";
         ?>
         </div>
         <div id = "messages">
-        <a href = "./pastDrives.php?nocache=1">Past Drives</a><br><a href = "./carControl.php?nocache=1">Car Control</a>
+        <a href = "./pastDrives.php">Past Drives</a><br><a href = "./carControl.php">Car Control</a>
         </div>
 
         <input type="submit" name="submit" value="Logout" id = logoutBtn>
