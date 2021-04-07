@@ -55,14 +55,8 @@ String GrabData(bool isMainThread)
 		httpCode = _secondThread.POST(_postString);
 	}
 	if (httpCode == HTTP_CODE_OK)
-<<<<<<< Updated upstream
-	{
-		// create buffer for read
-		uint8_t buff[75] = { 0 };
-=======
 	{		
 		uint8_t buff[65] = { 0 }; // buffer to read into
->>>>>>> Stashed changes
 
 		WiFiClient* stream;
 		if (isMainThread)
@@ -95,16 +89,7 @@ String GrabData(bool isMainThread)
 					// end of payload reached
 					if (buff[i] == '}')
 					{
-<<<<<<< Updated upstream
-						Serial.println(payload);
-
-						////Check if a bad data object was returned
-						//if (payload.indexOf("Failed") > 0)
-						//	return;
-
-=======
 						// parse the timestamp out of payload
->>>>>>> Stashed changes
 						JSONVar jason = JSON.parse(payload);
 						int tempStamp = atoi(jason["t"]);
 

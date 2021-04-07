@@ -13,13 +13,10 @@
     // if user isnt aloud here
     else if ($_SESSION["user"] != "admin")
     {
-        // must be admin, show them a prompt, then turf them
-        echo '<script>var r = confirm("You must be admin to access this page!")
-        if (r == true) {
-            window.location.replace("./index.php");;
-          } else {
-            window.location.replace("./index.php");;
-          }       
+        // must be admin, show them an alert, then turf them
+        echo '<script>
+        var r = alert("You must be admin to access this page!")
+        window.location.replace("./index.php");
         </script>';
 
         // not logged in, turf him to index.php

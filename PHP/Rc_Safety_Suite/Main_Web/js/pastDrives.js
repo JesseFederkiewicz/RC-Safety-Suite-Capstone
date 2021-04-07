@@ -62,7 +62,7 @@ $(document).ready( () => {
     // update drives for a specific car
     $('#yourCarNum').change( () => {
         FillCarDrives($('#yourCarNum').val())
-        $('#deleteCarData').val(`Delete Car #${('#yourCarNum').val()} Data`)
+        $('#deleteCarData').val(`Delete Car #${$('#yourCarNum').val()} Data`)
     });
 
     // update drives num
@@ -292,6 +292,17 @@ function FillCarDrivesSelect(data, response)
         $("#loginFormPastDrives").css("grid-column", "1/3");
 
         return;
+    }
+
+    else
+    {
+        // dynamically resize logout
+        $("#loginFormPastDrives").css("grid-column", "1");
+
+        // hide buttons
+        $("#loadDriveBtn").show();
+        $("#deleteCarData").show();
+        $("#deleteCarDrive").show();
     }
 
 

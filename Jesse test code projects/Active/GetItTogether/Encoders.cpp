@@ -21,6 +21,7 @@ Encoder_Settings BL_Encoder2;
 Encoder_Settings BR_Encoder;
 Encoder_Settings BR_Encoder2;
 
+// initialized the PCNT units for the encoders, needs 4 ISR functions passed to it for the interrupt inits
 void InitEncoders(void (*LFintISR) (void), void (*RFintISR) (void), void (*RRintISR) (void), void (*LRintISR) (void))
 {
 	FL_Encoder.pin = 34;                     // Front Left encoder input on pin 34
@@ -69,9 +70,9 @@ void InitEncoders(void (*LFintISR) (void), void (*RFintISR) (void), void (*RRint
 	FL_PCNT.unit = FL_Encoder.pcntUnit;        // motor 1 encoder readings using pcnt unit 0        
 	FL_PCNT.channel = PCNT_CHANNEL_0;          // using unit 0 channel 0
 	FL_PCNT.pos_mode = PCNT_COUNT_INC;         // Count Rising-Edges and falling edges
-	FL_PCNT.neg_mode = PCNT_COUNT_INC;
+	FL_PCNT.neg_mode = PCNT_COUNT_INC;	       
 	FL_PCNT.lctrl_mode = PCNT_MODE_KEEP;       // Control mode: won't change counter mode
-	FL_PCNT.hctrl_mode = PCNT_MODE_KEEP;
+	FL_PCNT.hctrl_mode = PCNT_MODE_KEEP;       
 	FL_PCNT.counter_h_lim = INT16_MAX;
 	FL_PCNT.counter_l_lim = INT16_MIN;
 
@@ -81,9 +82,9 @@ void InitEncoders(void (*LFintISR) (void), void (*RFintISR) (void), void (*RRint
 	FL_PCNT2.unit = FL_Encoder2.pcntUnit;       // motor 1 encoder readings using pcnt unit 0        
 	FL_PCNT2.channel = PCNT_CHANNEL_0;          // using unit 0 channel 0
 	FL_PCNT2.pos_mode = PCNT_COUNT_INC;         // Count Rising-Edges and falling edges
-	FL_PCNT2.neg_mode = PCNT_COUNT_INC;
+	FL_PCNT2.neg_mode = PCNT_COUNT_INC;	        
 	FL_PCNT2.lctrl_mode = PCNT_MODE_KEEP;       // Control mode: won't change counter mode
-	FL_PCNT2.hctrl_mode = PCNT_MODE_KEEP;
+	FL_PCNT2.hctrl_mode = PCNT_MODE_KEEP;       
 	FL_PCNT2.counter_h_lim = INT16_MAX;
 	FL_PCNT2.counter_l_lim = INT16_MIN;
 
@@ -93,9 +94,9 @@ void InitEncoders(void (*LFintISR) (void), void (*RFintISR) (void), void (*RRint
 	FR_PCNT.unit = FR_Encoder.pcntUnit;		   // motor 2 encoder readings using pcnt unit 1
 	FR_PCNT.channel = PCNT_CHANNEL_0;          // using unit 1 channel 0
 	FR_PCNT.pos_mode = PCNT_COUNT_INC;         // Count Rising-Edges and falling edges
-	FR_PCNT.neg_mode = PCNT_COUNT_INC;
+	FR_PCNT.neg_mode = PCNT_COUNT_INC;	        
 	FR_PCNT.lctrl_mode = PCNT_MODE_KEEP;       // Control mode: won't change counter mode
-	FR_PCNT.hctrl_mode = PCNT_MODE_KEEP;
+	FR_PCNT.hctrl_mode = PCNT_MODE_KEEP;       
 	FR_PCNT.counter_h_lim = INT16_MAX;
 	FR_PCNT.counter_l_lim = INT16_MIN;
 
@@ -105,9 +106,9 @@ void InitEncoders(void (*LFintISR) (void), void (*RFintISR) (void), void (*RRint
 	FR_PCNT2.unit = FR_Encoder2.pcntUnit;		// motor 2 encoder readings using pcnt unit 1
 	FR_PCNT2.channel = PCNT_CHANNEL_0;          // using unit 1 channel 0
 	FR_PCNT2.pos_mode = PCNT_COUNT_INC;         // Count Rising-Edges and falling edges
-	FR_PCNT2.neg_mode = PCNT_COUNT_INC;
+	FR_PCNT2.neg_mode = PCNT_COUNT_INC;	       
 	FR_PCNT2.lctrl_mode = PCNT_MODE_KEEP;       // Control mode: won't change counter mode
-	FR_PCNT2.hctrl_mode = PCNT_MODE_KEEP;
+	FR_PCNT2.hctrl_mode = PCNT_MODE_KEEP;       
 	FR_PCNT2.counter_h_lim = INT16_MAX;
 	FR_PCNT2.counter_l_lim = INT16_MIN;
 
@@ -117,9 +118,9 @@ void InitEncoders(void (*LFintISR) (void), void (*RFintISR) (void), void (*RRint
 	BL_PCNT.unit = BL_Encoder.pcntUnit;        // motor 3 encoder readings using pcnt unit 2
 	BL_PCNT.channel = PCNT_CHANNEL_0;          // using unit 0 channel 0
 	BL_PCNT.pos_mode = PCNT_COUNT_INC;         // Count Rising-Edges and falling edges
-	BL_PCNT.neg_mode = PCNT_COUNT_INC;
+	BL_PCNT.neg_mode = PCNT_COUNT_INC;	        
 	BL_PCNT.lctrl_mode = PCNT_MODE_KEEP;       // Control mode: won't change counter mode
-	BL_PCNT.hctrl_mode = PCNT_MODE_KEEP;
+	BL_PCNT.hctrl_mode = PCNT_MODE_KEEP;       
 	BL_PCNT.counter_h_lim = INT16_MAX;
 	BL_PCNT.counter_l_lim = INT16_MIN;
 
@@ -129,9 +130,9 @@ void InitEncoders(void (*LFintISR) (void), void (*RFintISR) (void), void (*RRint
 	BL_PCNT2.unit = BL_Encoder2.pcntUnit;       // motor 3 encoder readings using pcnt unit 2
 	BL_PCNT2.channel = PCNT_CHANNEL_0;          // using unit 0 channel 0
 	BL_PCNT2.pos_mode = PCNT_COUNT_INC;         // Count Rising-Edges and falling edges
-	BL_PCNT2.neg_mode = PCNT_COUNT_INC;
+	BL_PCNT2.neg_mode = PCNT_COUNT_INC;	       
 	BL_PCNT2.lctrl_mode = PCNT_MODE_KEEP;       // Control mode: won't change counter mode
-	BL_PCNT2.hctrl_mode = PCNT_MODE_KEEP;
+	BL_PCNT2.hctrl_mode = PCNT_MODE_KEEP;       
 	BL_PCNT2.counter_h_lim = INT16_MAX;
 	BL_PCNT2.counter_l_lim = INT16_MIN;
 
@@ -141,9 +142,9 @@ void InitEncoders(void (*LFintISR) (void), void (*RFintISR) (void), void (*RRint
 	BR_PCNT.unit = BR_Encoder.pcntUnit;		   // motor 4 encoder readings using pcnt unit 3
 	BR_PCNT.channel = PCNT_CHANNEL_0;          // using unit 1 channel 0
 	BR_PCNT.pos_mode = PCNT_COUNT_INC;         // Count Rising-Edges and falling edges
-	BR_PCNT.neg_mode = PCNT_COUNT_INC;
+	BR_PCNT.neg_mode = PCNT_COUNT_INC;	        
 	BR_PCNT.lctrl_mode = PCNT_MODE_KEEP;       // Control mode: won't change counter mode
-	BR_PCNT.hctrl_mode = PCNT_MODE_KEEP;
+	BR_PCNT.hctrl_mode = PCNT_MODE_KEEP;      
 	BR_PCNT.counter_h_lim = INT16_MAX;
 	BR_PCNT.counter_l_lim = INT16_MIN;
 
@@ -153,9 +154,9 @@ void InitEncoders(void (*LFintISR) (void), void (*RFintISR) (void), void (*RRint
 	BR_PCNT2.unit = BR_Encoder2.pcntUnit;		// motor 4 encoder readings using pcnt unit 3
 	BR_PCNT2.channel = PCNT_CHANNEL_0;          // using unit 1 channel 0
 	BR_PCNT2.pos_mode = PCNT_COUNT_INC;         // Count Rising-Edges and falling edges
-	BR_PCNT2.neg_mode = PCNT_COUNT_INC;
+	BR_PCNT2.neg_mode = PCNT_COUNT_INC;	       
 	BR_PCNT2.lctrl_mode = PCNT_MODE_KEEP;       // Control mode: won't change counter mode
-	BR_PCNT2.hctrl_mode = PCNT_MODE_KEEP;
+	BR_PCNT2.hctrl_mode = PCNT_MODE_KEEP;       
 	BR_PCNT2.counter_h_lim = INT16_MAX;
 	BR_PCNT2.counter_l_lim = INT16_MIN;
 
@@ -168,7 +169,7 @@ void InitEncoders(void (*LFintISR) (void), void (*RFintISR) (void), void (*RRint
 	pcnt_unit_config(&BR_PCNT);
 	pcnt_unit_config(&BR_PCNT2);
 
-	// set pulse pcnt filters to filter unwanted noise
+	// set pcnts to filter unwanted noise
 	pcnt_set_filter_value(FL_Encoder.pcntUnit, 250);
 	pcnt_filter_enable(FL_Encoder.pcntUnit);
 	pcnt_set_filter_value(FL_Encoder2.pcntUnit, 250);
@@ -266,7 +267,7 @@ void TimerInterruptInit(void (*intFunc) (void))
 
 // calculates motor rpm based on encoder readings
 // RPM = (encoder count)/(211.2 counts per revolution)*(60 rpm)*(_timerClk/intTriggerPeriodUs);	
-// motor specs: https://www.pololu.com/product/4861
+// motor specs/encoder data: https://www.pololu.com/product/4861
 float CalcRMP(uint encoderVal)
 {
 	const int _timerClk = 80000000 / _timerPrescale;	
@@ -277,6 +278,7 @@ float CalcRMP(uint encoderVal)
 // gets RPMs from the encoder values and returns them
 void GetRPMS(RPMS* rpms)
 {
+	// pulses counted per encoder input
 	int16_t fl_Enc;
 	int16_t fr_Enc;
 	int16_t bl_Enc;
@@ -294,7 +296,7 @@ void GetRPMS(RPMS* rpms)
 	pcnt_get_counter_value(FR_Encoder2.pcntUnit, &fr_Enc2);
 	pcnt_get_counter_value(BL_Encoder2.pcntUnit, &bl_Enc2);
 	pcnt_get_counter_value(BR_Encoder2.pcntUnit, &br_Enc2);
-
+	
 	// get rpms based on 2 encoders per wheel
 	rpms->FL_RPM = CalcRMP(fl_Enc + fl_Enc2);
 	rpms->FR_RPM = CalcRMP(fr_Enc + fr_Enc2);

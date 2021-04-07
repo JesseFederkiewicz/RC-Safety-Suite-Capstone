@@ -9,7 +9,6 @@
 #include "driver/timer.h"
 #include "esp32-hal.h"
 
-// custom structs to hold several emuns that are needed for configs/inits of pcnt modules
 typedef struct Encoder_Settings {
 	int pin;                             // GPIO pin of the encoder input signal
 	gpio_num_t gpioNum;                  // gpio num
@@ -17,7 +16,6 @@ typedef struct Encoder_Settings {
 	pcnt_unit_t pcntUnit;                // which PCNT unit will the encoder input to
 };
 
-// contains values for all current wheel rpms, wheel direction and ground speed sensor count
 typedef struct RPMS {
 	int GroundSpeedCount;
 	float FL_RPM;
@@ -29,6 +27,8 @@ typedef struct RPMS {
 	Movement BL_Wheel_movement;
 	Movement BR_Wheel_movement;
 };
+
+
 void InitEncoders(void (*LFintISR) (void), void (*RFintISR) (void), void (*RRintISR) (void), void (*LRintISR) (void));
 void TimerInterruptInit(void (*intFunc) (void));
 void GetRPMS(RPMS* rpms);

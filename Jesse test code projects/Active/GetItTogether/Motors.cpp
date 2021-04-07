@@ -14,8 +14,8 @@ PWM_Settings BL_PWM;
 PWM_Settings BR_PWM;
 
 // gpio number of the 2 directional control pins, used for inits and setting directions
-gpio_num_t rightDirControlPin;
-gpio_num_t leftDirControlPin;
+gpio_num_t _rightDirControlPin;
+gpio_num_t _leftDirControlPin;
 
 void InitMotors() 
 {
@@ -47,13 +47,13 @@ void InitMotors()
 	BR_PWM.signal = MCPWM0B;     // needed for gpio_init
 	BR_PWM.pin = 2;			     // pwm for Back Right on pin 2
 
-	// set GPIOs for PWMs
+	// set GPIOs for PWM outputs
 	mcpwm_gpio_init(FL_PWM.unit, FL_PWM.signal, FL_PWM.pin);
 	mcpwm_gpio_init(FR_PWM.unit, FR_PWM.signal, FR_PWM.pin);
 	mcpwm_gpio_init(BL_PWM.unit, BL_PWM.signal, BL_PWM.pin);
 	mcpwm_gpio_init(BR_PWM.unit, BR_PWM.signal, BR_PWM.pin);
 
-	// config/init each PWM unit
+	// configs for PWM unit
 	mcpwm_config_t pwmconf;
 	pwmconf.frequency = 10000;				 // timer freq 10k
 	pwmconf.duty_mode = MCPWM_DUTY_MODE_0;   // positive duty cycle
@@ -61,13 +61,14 @@ void InitMotors()
 	pwmconf.cmpr_a = 0;						 // initial duty of 0
 	pwmconf.cmpr_b = 0;
 
+	// initialize pwm units
 	mcpwm_init(FL_PWM.unit, FL_PWM.timer, &pwmconf);
 	mcpwm_init(BL_PWM.unit, BL_PWM.timer, &pwmconf);
 
 	// Init GPIOs for diectional control
 
 	// setup gpio pin 21 for rightDirection control
-	rightDirControlPin = GPIO_NUM_21;
+	_rightDirControlPin = GPIO_NUM_21;
 	gpio_config_t rightDirConfig;
 	rightDirConfig.intr_type = GPIO_INTR_DISABLE;
 	rightDirConfig.mode = GPIO_MODE_OUTPUT;
@@ -76,7 +77,7 @@ void InitMotors()
 	rightDirConfig.pull_up_en = GPIO_PULLUP_ENABLE;
 
 	// setup gpio pin 4 for leftDirection control
-	leftDirControlPin = GPIO_NUM_4;
+	_leftDirControlPin = GPIO_NUM_4;
 	gpio_config_t leftDirConfig;
 	leftDirConfig.intr_type = GPIO_INTR_DISABLE;
 	leftDirConfig.mode = GPIO_MODE_OUTPUT;
@@ -104,6 +105,6 @@ void SetMotorSpeeds(MotorDuties duties)
 // sets all directions for both sets of motors
 void SetMotorDirections(MotorDirection leftDirection, MotorDirection rightDirection) 
 {
-	gpio_set_level(leftDirControlPin, leftDirection);
-	gpio_set_level(rightDirControlPin, rightDirection);
+	gpio_set_level(_leftDirControlPin, leftDirection);
+	gpio_set_level(_rightDirControlPin, rightDirection);
 }

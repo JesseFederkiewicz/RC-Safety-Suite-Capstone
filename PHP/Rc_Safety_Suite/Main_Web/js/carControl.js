@@ -211,6 +211,11 @@ $(document).ready ( () => {
 		$("#absSliderLbl").html("ABS Level [" + $("#absSlider").val() + "]");
 	});
 
+	// ABS level slider
+	$("#brakeSlider").change ( () => {
+		$("#brakeStrengthSlider").html("Brake Strength [" + $("#brakeSlider").val() + "]");
+	});
+
 	// redirect to index on click
 	$('#toIndexCarControl').click( () =>{
         window.location.replace("./index.php");
@@ -689,7 +694,7 @@ function FixedSendData(speed, angle)
 	data['intendedAngle'] = angle;
 	data['intendedSpeed'] = speed;
 	data['brakeStrength'] = $("#hardCodeBrakeStrength").val();
-	data['TC_Level'] = $("#hardCodeBrakeStrength").val();
+	data['TC_Level'] = $("#hardCodeTC").val();
 	data['ABS_Level'] = $("#hardCodeAbs").val();
 	
     // date.now() returns number of ms from January 1, 1970, parsed to keep track of 1 minute in ms

@@ -3,6 +3,7 @@
 // Authors: Tim Hachey, Jesse Federkiewicz
 // Decription: main program loops and helper functions for the master board
 // 
+
 #include "Main.h"
 #include "mutex"
 
@@ -13,7 +14,6 @@ int _intendedAngle = 0;
 int _intendedSpeed = 0;
 int _timeStamp = 1;
 int _absLevel = 0;
-int _brakeStrength = 0;
 int _tcLevel = 0;
 
 // value for the ground speed sensor to increment during interrupts
@@ -111,8 +111,11 @@ void ReadSerialPayload()
 		// filter out bad payloads by length
 		if (payload.length() < 12) return;
 
+		Serial.println(payload);
+
 		// parse payload with our boi Jason
-		JSONVar jason = JSON.parse(payload);	
+		JSONVar jason = JSON.parse(payload);		
+
 		int tempStamp = atoi(jason["t"]);
 
 		// only parse newer payloads
@@ -123,7 +126,6 @@ void ReadSerialPayload()
 			_intendedSpeed = atoi(jason["s"]);
 			_tcLevel = atoi(jason["tc"]);
 			_absLevel = atoi(jason["abs"]);
-			_brakeStrength = atoi(jason["bs"]);
 			_timeStamp = tempStamp;
 			_mutex.unlock();
 		}
@@ -138,7 +140,7 @@ void Core0Loop(void* param)
 	{
 		ReadSerialPayload();
 
-		//Here for now until more is done, if it spins too much guru error
+		// Here for now until more is done, if it spins too much guru error
 		delay(10);
 	}
 }
@@ -150,7 +152,7 @@ void Main()
 	Serial2.begin(115200);					  // serial channel for receiving from secondary board
 	Serial1.begin(115200, SERIAL_8N1, 9, 17); // serial channel for sending data to secondary board
 
-		// Initializations for motors and encoders
+	// Initializations for motors and encoders
 	InitMotors();
 	InitEncoders(EncoderIntLF, EncoderIntRF, EncoderIntRR, EncoderIntLR);
 
@@ -170,7 +172,7 @@ void Main()
 		0);          /* Core where the task should run */
 
 	// only send serial data every n intervals, dont want to send too fast
-	const int sendInterval = 12;
+	const int sendInterval = 16;
 	int sendTimer = 0;
 
 	for (;;)
@@ -189,9 +191,9 @@ void Main()
 			ActiveControls actives = { false,false,0 }; // indicates if tc or abs are actively changing motor duties
 
 			// update motor duties based on current commands and relevant data, and get active systems in return
-			actives = Drive(_intendedAngle, _intendedSpeed, _rpms, _tcLevel, _absLevel, _brakeStrength);
+			actives = Drive(_intendedAngle, _intendedSpeed, _rpms, _tcLevel, _absLevel);
 
-			// send data to slave board every n intervals
+			// send data to slave board every n timer intervals
 			if (Serial1.availableForWrite() && sendTimer >= sendInterval)
 			{
 				// build the string in a format ready to be posted up to the webservice
@@ -210,7 +212,7 @@ void Main()
 
 				// resets after sending to slave board
 				sendTimer = 0;
-				_groundSpeedCount = 0; 
+				_groundSpeedCount = 0;
 			}
 			sendTimer++;
 		}

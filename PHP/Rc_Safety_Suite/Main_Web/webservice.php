@@ -167,6 +167,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'DeleteUser')
     // get and sanitize userID
     $userID = $mysqli->real_escape_string(strip_tags($_POST['userID']));
 
+    
     // send query
     $query = mysqliNonQuery("DELETE FROM web_to_car where userID like {$userID}");
 
@@ -183,22 +184,22 @@ if (isset($_POST['action']) && $_POST['action'] == 'DeleteUser')
         {
             $status = "DeleteCar: {$carID} deleted from web_to_car and car_to_web";
 
-            // delete from last DB
-            $query3 = mysqliNonQuery("DELETE FROM users where userID like {$userID}");
-
-            // if good
-            if ($query3)
-                $status = "DeleteCar: EVERYTHING DELETED FOR USER";
-
-            // if bad
-            else
-                "Error deleting user";
-
         }
 
         // if bad
         else
             $status = "DeleteCar: {$carID} inserted";
+
+        // delete from last DB
+        $query3 = mysqliNonQuery("DELETE FROM users where userID like {$userID}");
+
+        // if good
+        if ($query3)
+            $status = "DeleteCar: EVERYTHING DELETED FOR USER";
+
+        // if bad
+        else
+            "Error deleting user";
     }
     
     // if bad

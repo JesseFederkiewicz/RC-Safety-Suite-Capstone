@@ -6,14 +6,12 @@
 #include "Motors.h"
 #include "Encoders.h"
 
-// used to determine when abs,tc or burnouts are active, and passing this info back to the database
 typedef struct ActiveControls {
 	bool tcActivated;
 	bool absActivated;
 	int burnout;
 };
 
-// which wheel is currently being modified
 typedef enum Wheel {
 	LF,
 	RF,
@@ -21,7 +19,6 @@ typedef enum Wheel {
 	RR
 };
 
-// contains values for current/desired rpms, and direction for a specific wheel
 typedef struct WheelAndRPMs {
 	float rpm;
 	float desiredRpm;
@@ -29,9 +26,9 @@ typedef struct WheelAndRPMs {
 	Movement movement;
 };
 
-ActiveControls Drive(int angle, uint speedIn, RPMS rpm, int tcLevel, int absLevel, int brakeStrength);
+ActiveControls Drive(int angle, uint speedIn, RPMS rpm, int tcLevel, int absLevel);
 ActiveControls Steering(int angle, uint speedRequest, RPMS rpm, int tcLevel, int absLevel);
 bool UpdateDuty(WheelAndRPMs currentWheel, float* duty, WheelAndRPMs slowestWheel, uint speedRequest, int tcLevel, int absLevel);
 bool SingleWheelBrake(WheelAndRPMs wheel, float* wheelDuty, Movement* lastWheelDir,
-						int* stopCounter, int* stopDetection, int absLevel, int brakeStrength);
+						int* stopCounter, int* stopDetection, int absLevel);
 #endif
